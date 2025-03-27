@@ -1,9 +1,9 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import { generateHeatMapPoints } from "@/lib/mockData";
 import { Button } from "@/components/ui/button";
 import { Layers, MapPin, Map as MapIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import type mapboxgl from "mapbox-gl";
 
 const MapComponent = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -14,8 +14,6 @@ const MapComponent = () => {
   const [viewMode, setViewMode] = useState<"map" | "satellite">("map");
 
   useEffect(() => {
-    // This would normally be stored in a secure way, but for demo purposes
-    // we're asking the user to enter it
     const askForToken = () => {
       const token = prompt(
         "Please enter your Mapbox token (this is for demonstration purposes only)",
@@ -36,7 +34,6 @@ const MapComponent = () => {
   }, []);
 
   useEffect(() => {
-    // Import mapboxgl dynamically to avoid SSR issues
     const initializeMap = async () => {
       if (!mapboxToken || !mapContainer.current) return;
       
@@ -49,7 +46,7 @@ const MapComponent = () => {
         const initialMap = new mapboxgl.default.Map({
           container: mapContainer.current,
           style: viewMode === "map" ? "mapbox://styles/mapbox/light-v11" : "mapbox://styles/mapbox/satellite-streets-v12",
-          center: [-98.5795, 39.8283], // Center of the US
+          center: [-98.5795, 39.8283],
           zoom: 3,
           minZoom: 2,
           maxZoom: 15,
@@ -64,13 +61,11 @@ const MapComponent = () => {
           setLoading(false);
         });
         
-        // Add navigation control
         initialMap.addControl(
           new mapboxgl.default.NavigationControl(),
           "top-right"
         );
         
-        // Add geolocation control
         initialMap.addControl(
           new mapboxgl.default.GeolocateControl({
             positionOptions: {
@@ -101,17 +96,14 @@ const MapComponent = () => {
     
     const heatMapPoints = generateHeatMapPoints();
     
-    // Remove existing heatmap layer if it exists
     if (map.current.getLayer("heatmap-layer")) {
       map.current.removeLayer("heatmap-layer");
     }
     
-    // Remove existing heatmap source if it exists
     if (map.current.getSource("heatmap-data")) {
       map.current.removeSource("heatmap-data");
     }
     
-    // Add heat map data source
     map.current.addSource("heatmap-data", {
       type: "geojson",
       data: {
@@ -129,7 +121,6 @@ const MapComponent = () => {
       },
     });
     
-    // Add heat map layer
     map.current.addLayer({
       id: "heatmap-layer",
       type: "heatmap",
@@ -159,7 +150,6 @@ const MapComponent = () => {
       },
     });
     
-    // Add points for higher zoom levels
     map.current.addLayer({
       id: "circle-layer",
       type: "circle",
