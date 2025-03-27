@@ -1,4 +1,16 @@
 
+// User roles
+export type UserRole = "public" | "lawEnforcement" | "admin";
+
+// User type
+export type User = {
+  id: string;
+  username: string;
+  email: string;
+  role: UserRole;
+};
+
+// Offender type
 export type Offender = {
   id: string;
   name: string;
@@ -11,16 +23,45 @@ export type Offender = {
   lastUpdate: string;
 };
 
+// HeatMap point for visualization
 export type HeatMapPoint = {
   coordinates: [number, number];
   intensity: number;
 };
 
-export type UserRole = "public" | "lawEnforcement" | "admin";
-
-export type User = {
+// Notification type
+export type Notification = {
   id: string;
-  username: string;
-  email: string;
-  role: UserRole;
+  userId: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+};
+
+// Alert area for geofencing notifications
+export type AlertArea = {
+  id: string;
+  userId: string;
+  name: string;
+  coordinates: [number, number]; // [longitude, latitude]
+  radius: number; // in meters
+  createdAt: string;
+};
+
+// Search filters type
+export type SearchFilters = {
+  offenseType: string;
+  status: string;
+  radius: number;
+};
+
+// Search log type
+export type SearchLog = {
+  id: string;
+  userId?: string;
+  searchQuery: string;
+  filters?: SearchFilters;
+  searchDate: string;
+  ipAddress?: string;
 };
