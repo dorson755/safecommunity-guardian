@@ -45,19 +45,25 @@ const Index = () => {
   const [searchResults, setSearchResults] = useState<Offender[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [dataAvailable, setDataAvailable] = useState(false);
   
   useEffect(() => {
-    // Call the database function to ensure sample data exists
-    const ensureSampleData = async () => {
+    // Check if there is data in the database
+    const checkDataAvailability = async () => {
       try {
-        // Use a type assertion to bypass TypeScript's type checking for RPC
-        await supabase.rpc('insert_mock_offenders' as any);
+        const { count, error } = await supabase
+          .from('offenders')
+          .select('*', { count: 'exact', head: true });
+        
+        if (error) throw error;
+        
+        setDataAvailable(count !== null && count > 0);
       } catch (error) {
-        console.error("Error ensuring sample data:", error);
+        console.error("Error checking data availability:", error);
       }
     };
     
-    ensureSampleData();
+    checkDataAvailability();
   }, []);
 
   const handleSearch = async (query: string, filters: any) => {
@@ -179,12 +185,14 @@ const Index = () => {
           
           <MapComponent />
           
-          <div className="flex justify-center mt-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              <AlertTriangle className="inline-block mr-1 h-4 w-4" />
-              This is demo data for illustrative purposes only. For actual data, please sign in.
-            </p>
-          </div>
+          {!dataAvailable && (
+            <div className="flex justify-center mt-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                <AlertTriangle className="inline-block mr-1 h-4 w-4" />
+                No data available. Please sign in to access the offender registry data.
+              </p>
+            </div>
+          )}
         </div>
       </section>
       

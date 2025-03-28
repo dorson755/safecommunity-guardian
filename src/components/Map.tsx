@@ -15,20 +15,7 @@ const MapComponent = () => {
   const [loading, setLoading] = useState(true);
   const [mapboxToken, setMapboxToken] = useState<string>("");
   const [viewMode, setViewMode] = useState<"map" | "satellite">("map");
-
-  useEffect(() => {
-    // Call the database function to ensure sample data exists
-    const ensureSampleData = async () => {
-      try {
-        // Use a type assertion to bypass TypeScript's type checking for RPC
-        await supabase.rpc('insert_mock_offenders' as any);
-      } catch (error) {
-        console.error("Error ensuring sample data:", error);
-      }
-    };
-    
-    ensureSampleData();
-  }, []);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
     const askForToken = () => {
@@ -119,89 +106,95 @@ const MapComponent = () => {
         
       if (error) throw error;
       
-      const heatMapPoints: HeatMapPoint[] = offenderData.map(offender => {
-        const transformed = transformOffenderFromDB(offender);
-        return {
-          coordinates: transformed.coordinates,
-          intensity: Math.random() * 0.5 + 0.5,
-        };
-      });
-      
-      if (map.current.getLayer("heatmap-layer")) {
-        map.current.removeLayer("heatmap-layer");
+      if (offenderData && offenderData.length > 0) {
+        setDataLoaded(true);
+        
+        const heatMapPoints: HeatMapPoint[] = offenderData.map(offender => {
+          const transformed = transformOffenderFromDB(offender);
+          return {
+            coordinates: transformed.coordinates,
+            intensity: Math.random() * 0.5 + 0.5,
+          };
+        });
+        
+        if (map.current.getLayer("heatmap-layer")) {
+          map.current.removeLayer("heatmap-layer");
+        }
+        
+        if (map.current.getSource("heatmap-data")) {
+          map.current.removeSource("heatmap-data");
+        }
+        
+        map.current.addSource("heatmap-data", {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features: heatMapPoints.map((point) => ({
+              type: "Feature",
+              properties: {
+                intensity: point.intensity,
+              },
+              geometry: {
+                type: "Point",
+                coordinates: point.coordinates,
+              },
+            })),
+          },
+        });
+        
+        map.current.addLayer({
+          id: "heatmap-layer",
+          type: "heatmap",
+          source: "heatmap-data",
+          paint: {
+            "heatmap-weight": ["get", "intensity"],
+            "heatmap-intensity": 1,
+            "heatmap-color": [
+              "interpolate",
+              ["linear"],
+              ["heatmap-density"],
+              0,
+              "rgba(33,102,172,0)",
+              0.2,
+              "rgb(103,169,207)",
+              0.4,
+              "rgb(209,229,240)",
+              0.6,
+              "rgb(253,219,199)",
+              0.8,
+              "rgb(239,138,98)",
+              1,
+              "rgb(178,24,43)",
+            ],
+            "heatmap-radius": 20,
+            "heatmap-opacity": 0.8,
+          },
+        });
+        
+        map.current.addLayer({
+          id: "circle-layer",
+          type: "circle",
+          source: "heatmap-data",
+          minzoom: 8,
+          paint: {
+            "circle-radius": 6,
+            "circle-color": "rgb(178,24,43)",
+            "circle-stroke-color": "white",
+            "circle-stroke-width": 1,
+            "circle-opacity": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              8,
+              0,
+              10,
+              1,
+            ],
+          },
+        });
+      } else {
+        console.log("No offender data found. You may need to add data to the database.");
       }
-      
-      if (map.current.getSource("heatmap-data")) {
-        map.current.removeSource("heatmap-data");
-      }
-      
-      map.current.addSource("heatmap-data", {
-        type: "geojson",
-        data: {
-          type: "FeatureCollection",
-          features: heatMapPoints.map((point) => ({
-            type: "Feature",
-            properties: {
-              intensity: point.intensity,
-            },
-            geometry: {
-              type: "Point",
-              coordinates: point.coordinates,
-            },
-          })),
-        },
-      });
-      
-      map.current.addLayer({
-        id: "heatmap-layer",
-        type: "heatmap",
-        source: "heatmap-data",
-        paint: {
-          "heatmap-weight": ["get", "intensity"],
-          "heatmap-intensity": 1,
-          "heatmap-color": [
-            "interpolate",
-            ["linear"],
-            ["heatmap-density"],
-            0,
-            "rgba(33,102,172,0)",
-            0.2,
-            "rgb(103,169,207)",
-            0.4,
-            "rgb(209,229,240)",
-            0.6,
-            "rgb(253,219,199)",
-            0.8,
-            "rgb(239,138,98)",
-            1,
-            "rgb(178,24,43)",
-          ],
-          "heatmap-radius": 20,
-          "heatmap-opacity": 0.8,
-        },
-      });
-      
-      map.current.addLayer({
-        id: "circle-layer",
-        type: "circle",
-        source: "heatmap-data",
-        minzoom: 8,
-        paint: {
-          "circle-radius": 6,
-          "circle-color": "rgb(178,24,43)",
-          "circle-stroke-color": "white",
-          "circle-stroke-width": 1,
-          "circle-opacity": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            8,
-            0,
-            10,
-            1,
-          ],
-        },
-      });
     } catch (error) {
       console.error("Error loading heatmap data:", error);
     }
