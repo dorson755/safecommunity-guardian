@@ -4,7 +4,7 @@ import SearchBar from "@/components/SearchBar";
 import MapComponent from "@/components/Map";
 import FeatureCard from "@/components/FeatureCard";
 import AuthModal from "@/components/AuthModal";
-import { mockOffenders, searchOffenders, getOffendersByType, getOffendersByStatus } from "@/lib/mockOffenders";
+import { mockOffenders, searchOffenders, getOffendersByType, getOffendersByStatus } from "@/lib/mockData";
 import { Offender } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { 
