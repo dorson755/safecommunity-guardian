@@ -4,7 +4,6 @@ import SearchBar from "@/components/SearchBar";
 import MapComponent from "@/components/Map";
 import FeatureCard from "@/components/FeatureCard";
 import AuthModal from "@/components/AuthModal";
-import { mockOffenders, searchOffenders, getOffendersByType, getOffendersByStatus } from "@/lib/mockData";
 import { Offender } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { 
@@ -19,7 +18,6 @@ import {
   Card, 
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle 
 } from "@/components/ui/card";
@@ -46,6 +44,15 @@ const Index = () => {
   const [searchResults, setSearchResults] = useState<Offender[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  
+  useEffect(() => {
+    // Call the database function to ensure sample data exists
+    const ensureSampleData = async () => {
+      await supabase.rpc('insert_mock_offenders');
+    };
+    
+    ensureSampleData();
+  }, []);
 
   const handleSearch = async (query: string, filters: any) => {
     try {
@@ -87,18 +94,7 @@ const Index = () => {
       }
     } catch (error) {
       console.error("Error searching offenders:", error);
-      // Fall back to mock data if database search fails
-      let results = query ? searchOffenders(query) : [...mockOffenders];
-      
-      if (filters.offenseType !== "all") {
-        results = getOffendersByType(filters.offenseType);
-      }
-      
-      if (filters.status !== "all") {
-        results = getOffendersByStatus(filters.status);
-      }
-      
-      setSearchResults(results);
+      setSearchResults([]);
       setHasSearched(true);
     }
   };
@@ -413,7 +409,7 @@ const Index = () => {
           
           <div className="text-center text-sm text-muted-foreground">
             <p>&copy; {new Date().getFullYear()} SafeguardRegistry. All rights reserved.</p>
-            <p className="mt-1">This is a demo application. No real data is used.</p>
+            <p className="mt-1">This is demo application. No real data is used.</p>
           </div>
         </div>
       </footer>

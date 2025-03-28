@@ -1,11 +1,12 @@
+
 import React, { useEffect, useRef, useState } from "react";
-import { generateHeatMapPoints } from "@/lib/mockOffenders";
 import { Button } from "@/components/ui/button";
 import { Layers, MapPin, Map as MapIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type mapboxgl from "mapbox-gl";
 import { supabase } from "@/integrations/supabase/client";
 import { transformOffenderFromDB } from "@/integrations/supabase/client";
+import { HeatMapPoint } from "@/lib/types";
 
 const MapComponent = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -14,6 +15,15 @@ const MapComponent = () => {
   const [loading, setLoading] = useState(true);
   const [mapboxToken, setMapboxToken] = useState<string>("");
   const [viewMode, setViewMode] = useState<"map" | "satellite">("map");
+
+  useEffect(() => {
+    // Call the database function to ensure sample data exists
+    const ensureSampleData = async () => {
+      await supabase.rpc('insert_mock_offenders');
+    };
+    
+    ensureSampleData();
+  }, []);
 
   useEffect(() => {
     const askForToken = () => {
@@ -48,7 +58,7 @@ const MapComponent = () => {
         const initialMap = new mapboxgl.default.Map({
           container: mapContainer.current,
           style: viewMode === "map" ? "mapbox://styles/mapbox/light-v11" : "mapbox://styles/mapbox/satellite-streets-v12",
-          center: [-77.3554, 25.0443],
+          center: [-77.3554, 25.0443], // Nassau, Bahamas
           zoom: 11,
           minZoom: 2,
           maxZoom: 15,
@@ -104,7 +114,7 @@ const MapComponent = () => {
         
       if (error) throw error;
       
-      const heatMapPoints = offenderData.map(offender => {
+      const heatMapPoints: HeatMapPoint[] = offenderData.map(offender => {
         const transformed = transformOffenderFromDB(offender);
         return {
           coordinates: transformed.coordinates,
@@ -189,32 +199,6 @@ const MapComponent = () => {
       });
     } catch (error) {
       console.error("Error loading heatmap data:", error);
-      const heatMapPoints = generateHeatMapPoints();
-      
-      if (map.current.getLayer("heatmap-layer")) {
-        map.current.removeLayer("heatmap-layer");
-      }
-      
-      if (map.current.getSource("heatmap-data")) {
-        map.current.removeSource("heatmap-data");
-      }
-      
-      map.current.addSource("heatmap-data", {
-        type: "geojson",
-        data: {
-          type: "FeatureCollection",
-          features: heatMapPoints.map((point) => ({
-            type: "Feature",
-            properties: {
-              intensity: point.intensity,
-            },
-            geometry: {
-              type: "Point",
-              coordinates: point.coordinates,
-            },
-          })),
-        },
-      });
     }
   };
   
