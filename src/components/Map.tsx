@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Layers, MapPin, Map as MapIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type mapboxgl from "mapbox-gl";
+import { supabase } from "@/integrations/supabase/client";
+import { transformOffenderFromDB } from "@/integrations/supabase/client";
 
 const MapComponent = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -46,8 +48,8 @@ const MapComponent = () => {
         const initialMap = new mapboxgl.default.Map({
           container: mapContainer.current,
           style: viewMode === "map" ? "mapbox://styles/mapbox/light-v11" : "mapbox://styles/mapbox/satellite-streets-v12",
-          center: [-98.5795, 39.8283],
-          zoom: 3,
+          center: [-77.3554, 25.0443],
+          zoom: 11,
           minZoom: 2,
           maxZoom: 15,
           attributionControl: false,
@@ -91,86 +93,129 @@ const MapComponent = () => {
     };
   }, [mapboxToken, viewMode]);
   
-  const loadHeatMap = () => {
+  const loadHeatMap = async () => {
     if (!map.current || !mapLoaded) return;
     
-    const heatMapPoints = generateHeatMapPoints();
-    
-    if (map.current.getLayer("heatmap-layer")) {
-      map.current.removeLayer("heatmap-layer");
+    try {
+      const { data: offenderData, error } = await supabase
+        .from('offenders')
+        .select('*')
+        .eq('registration_status', 'active');
+        
+      if (error) throw error;
+      
+      const heatMapPoints = offenderData.map(offender => {
+        const transformed = transformOffenderFromDB(offender);
+        return {
+          coordinates: transformed.coordinates,
+          intensity: Math.random() * 0.5 + 0.5,
+        };
+      });
+      
+      if (map.current.getLayer("heatmap-layer")) {
+        map.current.removeLayer("heatmap-layer");
+      }
+      
+      if (map.current.getSource("heatmap-data")) {
+        map.current.removeSource("heatmap-data");
+      }
+      
+      map.current.addSource("heatmap-data", {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: heatMapPoints.map((point) => ({
+            type: "Feature",
+            properties: {
+              intensity: point.intensity,
+            },
+            geometry: {
+              type: "Point",
+              coordinates: point.coordinates,
+            },
+          })),
+        },
+      });
+      
+      map.current.addLayer({
+        id: "heatmap-layer",
+        type: "heatmap",
+        source: "heatmap-data",
+        paint: {
+          "heatmap-weight": ["get", "intensity"],
+          "heatmap-intensity": 1,
+          "heatmap-color": [
+            "interpolate",
+            ["linear"],
+            ["heatmap-density"],
+            0,
+            "rgba(33,102,172,0)",
+            0.2,
+            "rgb(103,169,207)",
+            0.4,
+            "rgb(209,229,240)",
+            0.6,
+            "rgb(253,219,199)",
+            0.8,
+            "rgb(239,138,98)",
+            1,
+            "rgb(178,24,43)",
+          ],
+          "heatmap-radius": 20,
+          "heatmap-opacity": 0.8,
+        },
+      });
+      
+      map.current.addLayer({
+        id: "circle-layer",
+        type: "circle",
+        source: "heatmap-data",
+        minzoom: 8,
+        paint: {
+          "circle-radius": 6,
+          "circle-color": "rgb(178,24,43)",
+          "circle-stroke-color": "white",
+          "circle-stroke-width": 1,
+          "circle-opacity": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            8,
+            0,
+            10,
+            1,
+          ],
+        },
+      });
+    } catch (error) {
+      console.error("Error loading heatmap data:", error);
+      const heatMapPoints = generateHeatMapPoints();
+      
+      if (map.current.getLayer("heatmap-layer")) {
+        map.current.removeLayer("heatmap-layer");
+      }
+      
+      if (map.current.getSource("heatmap-data")) {
+        map.current.removeSource("heatmap-data");
+      }
+      
+      map.current.addSource("heatmap-data", {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: heatMapPoints.map((point) => ({
+            type: "Feature",
+            properties: {
+              intensity: point.intensity,
+            },
+            geometry: {
+              type: "Point",
+              coordinates: point.coordinates,
+            },
+          })),
+        },
+      });
     }
-    
-    if (map.current.getSource("heatmap-data")) {
-      map.current.removeSource("heatmap-data");
-    }
-    
-    map.current.addSource("heatmap-data", {
-      type: "geojson",
-      data: {
-        type: "FeatureCollection",
-        features: heatMapPoints.map((point) => ({
-          type: "Feature",
-          properties: {
-            intensity: point.intensity,
-          },
-          geometry: {
-            type: "Point",
-            coordinates: point.coordinates,
-          },
-        })),
-      },
-    });
-    
-    map.current.addLayer({
-      id: "heatmap-layer",
-      type: "heatmap",
-      source: "heatmap-data",
-      paint: {
-        "heatmap-weight": ["get", "intensity"],
-        "heatmap-intensity": 1,
-        "heatmap-color": [
-          "interpolate",
-          ["linear"],
-          ["heatmap-density"],
-          0,
-          "rgba(33,102,172,0)",
-          0.2,
-          "rgb(103,169,207)",
-          0.4,
-          "rgb(209,229,240)",
-          0.6,
-          "rgb(253,219,199)",
-          0.8,
-          "rgb(239,138,98)",
-          1,
-          "rgb(178,24,43)",
-        ],
-        "heatmap-radius": 20,
-        "heatmap-opacity": 0.8,
-      },
-    });
-    
-    map.current.addLayer({
-      id: "circle-layer",
-      type: "circle",
-      source: "heatmap-data",
-      minzoom: 8,
-      paint: {
-        "circle-radius": 6,
-        "circle-color": "rgb(178,24,43)",
-        "circle-stroke-color": "white",
-        "circle-stroke-width": 1,
-        "circle-opacity": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          8,
-          0,
-          10,
-          1,
-        ],
-      },
-    });
   };
   
   const toggleMapStyle = () => {

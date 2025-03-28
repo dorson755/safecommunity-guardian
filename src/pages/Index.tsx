@@ -4,7 +4,7 @@ import SearchBar from "@/components/SearchBar";
 import MapComponent from "@/components/Map";
 import FeatureCard from "@/components/FeatureCard";
 import AuthModal from "@/components/AuthModal";
-import { mockOffenders, searchOffenders, getOffendersByType, getOffendersByStatus, insertMockOffenders } from "@/lib/mockOffenders";
+import { mockOffenders, searchOffenders, getOffendersByType, getOffendersByStatus } from "@/lib/mockOffenders";
 import { Offender } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { 
@@ -39,29 +39,68 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/integrations/supabase/client";
+import { transformOffenderFromDB } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [searchResults, setSearchResults] = useState<Offender[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  useEffect(() => {
-    insertMockOffenders().catch(console.error);
-  }, []);
-
-  const handleSearch = (query: string, filters: any) => {
-    let results = query ? searchOffenders(query) : [...mockOffenders];
-    
-    if (filters.offenseType !== "all") {
-      results = getOffendersByType(filters.offenseType);
+  const handleSearch = async (query: string, filters: any) => {
+    try {
+      // Create base query
+      let supaQuery = supabase.from('offenders').select('*');
+      
+      // Add filters if provided
+      if (query) {
+        supaQuery = supaQuery.or(`name.ilike.%${query}%,offense_type.ilike.%${query}%,last_known_address.ilike.%${query}%`);
+      }
+      
+      if (filters.offenseType !== "all") {
+        supaQuery = supaQuery.ilike('offense_type', `%${filters.offenseType}%`);
+      }
+      
+      if (filters.status !== "all") {
+        supaQuery = supaQuery.eq('registration_status', filters.status);
+      }
+      
+      // Execute query
+      const { data, error } = await supaQuery;
+      
+      if (error) throw error;
+      
+      // Transform data to Offender type
+      const results = data.map(offender => transformOffenderFromDB(offender));
+      
+      setSearchResults(results);
+      setHasSearched(true);
+      
+      // Log the search
+      try {
+        await supabase.from('search_logs').insert({
+          search_query: query,
+          filters: filters,
+        });
+      } catch (logError) {
+        console.error("Error logging search:", logError);
+      }
+    } catch (error) {
+      console.error("Error searching offenders:", error);
+      // Fall back to mock data if database search fails
+      let results = query ? searchOffenders(query) : [...mockOffenders];
+      
+      if (filters.offenseType !== "all") {
+        results = getOffendersByType(filters.offenseType);
+      }
+      
+      if (filters.status !== "all") {
+        results = getOffendersByStatus(filters.status);
+      }
+      
+      setSearchResults(results);
+      setHasSearched(true);
     }
-    
-    if (filters.status !== "all") {
-      results = getOffendersByStatus(filters.status);
-    }
-    
-    setSearchResults(results);
-    setHasSearched(true);
   };
 
   const getStatusColor = (status: string) => {
