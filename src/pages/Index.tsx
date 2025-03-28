@@ -1,11 +1,10 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import SearchBar from "@/components/SearchBar";
 import MapComponent from "@/components/Map";
 import FeatureCard from "@/components/FeatureCard";
 import AuthModal from "@/components/AuthModal";
-import { mockOffenders, searchOffenders, getOffendersByType, getOffendersByStatus } from "@/lib/mockData";
+import { mockOffenders, searchOffenders, getOffendersByType, getOffendersByStatus, insertMockOffenders } from "@/lib/mockOffenders";
 import { Offender } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { 
@@ -45,6 +44,10 @@ const Index = () => {
   const [searchResults, setSearchResults] = useState<Offender[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  useEffect(() => {
+    insertMockOffenders().catch(console.error);
+  }, []);
 
   const handleSearch = (query: string, filters: any) => {
     let results = query ? searchOffenders(query) : [...mockOffenders];

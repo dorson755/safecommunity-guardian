@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { generateHeatMapPoints } from "@/lib/mockData";
+import { generateHeatMapPoints } from "@/lib/mockOffenders";
 import { Button } from "@/components/ui/button";
 import { Layers, MapPin, Map as MapIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
