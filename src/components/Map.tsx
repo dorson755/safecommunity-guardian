@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Layers, MapPin, Map as MapIcon } from "lucide-react";
@@ -19,7 +18,12 @@ const MapComponent = () => {
   useEffect(() => {
     // Call the database function to ensure sample data exists
     const ensureSampleData = async () => {
-      await supabase.rpc('insert_mock_offenders');
+      try {
+        // Use the generic rpc method to avoid TypeScript errors
+        await supabase.rpc('insert_mock_offenders');
+      } catch (error) {
+        console.error("Error ensuring sample data:", error);
+      }
     };
     
     ensureSampleData();

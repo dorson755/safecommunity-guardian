@@ -48,7 +48,12 @@ const Index = () => {
   useEffect(() => {
     // Call the database function to ensure sample data exists
     const ensureSampleData = async () => {
-      await supabase.rpc('insert_mock_offenders');
+      try {
+        // Use the generic rpc method to avoid TypeScript errors
+        await supabase.rpc('insert_mock_offenders');
+      } catch (error) {
+        console.error("Error ensuring sample data:", error);
+      }
     };
     
     ensureSampleData();
