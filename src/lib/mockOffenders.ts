@@ -20,7 +20,7 @@ export const insertMockOffenders = async () => {
     {
       name: "John Doe",
       offense_type: "Sexual Assault",
-      registration_status: "active",
+      registration_status: "active" as const,
       conviction_date: "2019-05-12",
       last_known_address: "123 Main St, New York, NY",
       location: `POINT(-73.9712 40.7831)`, // New York
@@ -30,7 +30,7 @@ export const insertMockOffenders = async () => {
     {
       name: "Richard Smith",
       offense_type: "Child Abuse",
-      registration_status: "active",
+      registration_status: "active" as const,
       conviction_date: "2020-07-22",
       last_known_address: "456 Pine Ave, Los Angeles, CA",
       location: `POINT(-118.2437 34.0522)`, // Los Angeles
@@ -40,7 +40,7 @@ export const insertMockOffenders = async () => {
     {
       name: "Michael Johnson",
       offense_type: "Indecent Exposure",
-      registration_status: "expired",
+      registration_status: "expired" as const,
       conviction_date: "2018-02-10",
       last_known_address: "789 Oak Dr, Chicago, IL",
       location: `POINT(-87.6298 41.8781)`, // Chicago
@@ -50,7 +50,7 @@ export const insertMockOffenders = async () => {
     {
       name: "David Wilson",
       offense_type: "Sexual Assault",
-      registration_status: "active",
+      registration_status: "active" as const,
       conviction_date: "2021-11-15",
       last_known_address: "101 Elm St, Houston, TX",
       location: `POINT(-95.3698 29.7604)`, // Houston
@@ -60,7 +60,7 @@ export const insertMockOffenders = async () => {
     {
       name: "Thomas Brown",
       offense_type: "Child Pornography",
-      registration_status: "active",
+      registration_status: "active" as const,
       conviction_date: "2022-01-30",
       last_known_address: "202 Maple Rd, Phoenix, AZ",
       location: `POINT(-112.0740 33.4484)`, // Phoenix
@@ -70,7 +70,7 @@ export const insertMockOffenders = async () => {
     {
       name: "Christopher Davis",
       offense_type: "Stalking",
-      registration_status: "pending",
+      registration_status: "pending" as const,
       conviction_date: "2022-09-18",
       last_known_address: "303 Cedar Ln, Philadelphia, PA",
       location: `POINT(-75.1652 39.9526)`, // Philadelphia
@@ -80,7 +80,7 @@ export const insertMockOffenders = async () => {
     {
       name: "James Miller",
       offense_type: "Sexual Harassment",
-      registration_status: "active",
+      registration_status: "active" as const,
       conviction_date: "2020-03-25",
       last_known_address: "404 Birch Blvd, San Antonio, TX",
       location: `POINT(-98.4936 29.4241)`, // San Antonio
@@ -90,7 +90,7 @@ export const insertMockOffenders = async () => {
     {
       name: "Robert Taylor",
       offense_type: "Sexual Assault",
-      registration_status: "active",
+      registration_status: "active" as const,
       conviction_date: "2021-06-07",
       last_known_address: "505 Walnut Way, San Diego, CA",
       location: `POINT(-117.1611 32.7157)`, // San Diego
@@ -100,7 +100,7 @@ export const insertMockOffenders = async () => {
     {
       name: "William Martin",
       offense_type: "Child Abuse",
-      registration_status: "expired",
+      registration_status: "expired" as const,
       conviction_date: "2017-12-12",
       last_known_address: "606 Pineapple Pl, Dallas, TX",
       location: `POINT(-96.7970 32.7767)`, // Dallas
@@ -110,7 +110,7 @@ export const insertMockOffenders = async () => {
     {
       name: "Daniel Anderson",
       offense_type: "Rape",
-      registration_status: "active",
+      registration_status: "active" as const,
       conviction_date: "2022-04-19",
       last_known_address: "707 Apple Ave, San Jose, CA",
       location: `POINT(-121.8863 37.3382)`, // San Jose
