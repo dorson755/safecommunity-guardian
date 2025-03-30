@@ -6,6 +6,7 @@ import HeroSection from "@/components/HeroSection";
 import MapSection from "@/components/MapSection";
 import SearchResultsSection from "@/components/SearchResultsSection";
 import FeaturesSection from "@/components/FeaturesSection";
+import StatisticsSection from "@/components/StatisticsSection";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 import { Offender } from "@/lib/types";
@@ -112,6 +113,9 @@ const Index = () => {
         onOpenAuthModal={() => setIsAuthModalOpen(true)} 
         getStatusColor={getStatusColor}
       />
+      
+      {/* Statistics Section */}
+      <StatisticsSection />
       
       {/* Features Section */}
       <FeaturesSection />
