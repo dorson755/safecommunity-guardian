@@ -8,44 +8,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { transformOffenderFromDB } from "@/integrations/supabase/client";
 import { HeatMapPoint } from "@/lib/types";
 
+// Use the provided Mapbox token
+const MAPBOX_TOKEN = "pk.eyJ1IjoiZG9yc29uNzU1IiwiYSI6ImNtOHQ5YmM0aTA4bnEyaW9qa2Nyc2szNTUifQ.JvoVNbwm44WVlakNs8ph7g";
+
 const MapComponent = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [mapboxToken, setMapboxToken] = useState<string>("");
   const [viewMode, setViewMode] = useState<"map" | "satellite">("map");
   const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
-    const askForToken = () => {
-      const token = prompt(
-        "Please enter your Mapbox token (this is for demonstration purposes only)",
-        "pk.eyJ1IjoiZXhhbXBsZXRva2VuIiwiYSI6ImNreHh4eDx4eCJ9.example"
-      );
-      if (token) {
-        setMapboxToken(token);
-        localStorage.setItem("mapbox_token", token);
-      }
-    };
-
-    const savedToken = localStorage.getItem("mapbox_token");
-    if (savedToken) {
-      setMapboxToken(savedToken);
-    } else {
-      askForToken();
-    }
-  }, []);
-
-  useEffect(() => {
     const initializeMap = async () => {
-      if (!mapboxToken || !mapContainer.current) return;
+      if (!mapContainer.current) return;
       
       try {
         const mapboxgl = await import("mapbox-gl");
         await import("mapbox-gl/dist/mapbox-gl.css");
         
-        mapboxgl.default.accessToken = mapboxToken;
+        mapboxgl.default.accessToken = MAPBOX_TOKEN;
         
         const initialMap = new mapboxgl.default.Map({
           container: mapContainer.current,
@@ -80,6 +62,7 @@ const MapComponent = () => {
           "top-right"
         );
         
+        console.log("Mapbox initialized with token:", MAPBOX_TOKEN);
       } catch (error) {
         console.error("Error initializing map:", error);
         setLoading(false);
@@ -93,7 +76,7 @@ const MapComponent = () => {
         map.current.remove();
       }
     };
-  }, [mapboxToken, viewMode]);
+  }, [viewMode]);
   
   const loadHeatMap = async () => {
     if (!map.current || !mapLoaded) return;
@@ -108,6 +91,7 @@ const MapComponent = () => {
       
       if (offenderData && offenderData.length > 0) {
         setDataLoaded(true);
+        console.log("Loaded offender data:", offenderData.length, "records");
         
         const heatMapPoints: HeatMapPoint[] = offenderData.map(offender => {
           const transformed = transformOffenderFromDB(offender);
@@ -203,32 +187,6 @@ const MapComponent = () => {
   const toggleMapStyle = () => {
     setViewMode(viewMode === "map" ? "satellite" : "map");
   };
-  
-  if (!mapboxToken) {
-    return (
-      <div className="w-full h-[500px] flex items-center justify-center bg-secondary/50 rounded-lg">
-        <div className="text-center">
-          <p className="text-lg font-medium">Mapbox token required</p>
-          <p className="text-sm text-muted-foreground mb-4">
-            A Mapbox token is needed to display the interactive map
-          </p>
-          <Button
-            onClick={() => {
-              const token = prompt(
-                "Please enter your Mapbox token"
-              );
-              if (token) {
-                setMapboxToken(token);
-                localStorage.setItem("mapbox_token", token);
-              }
-            }}
-          >
-            Enter Mapbox Token
-          </Button>
-        </div>
-      </div>
-    );
-  }
   
   return (
     <div className="relative w-full h-[500px] rounded-lg overflow-hidden">
