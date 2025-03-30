@@ -26,28 +26,28 @@ const StatisticsSection = () => {
         setLoading(true);
         
         // Fetch total counts
-        const { data: totalCount, error: totalError } = await supabase
+        const { count: totalCount, error: totalError } = await supabase
           .from('offenders')
           .select('id', { count: 'exact', head: true });
         
         if (totalError) throw totalError;
         
         // Fetch counts by status
-        const { data: activeCount, error: activeError } = await supabase
+        const { count: activeCount, error: activeError } = await supabase
           .from('offenders')
           .select('id', { count: 'exact', head: true })
           .eq('registration_status', 'active');
           
         if (activeError) throw activeError;
         
-        const { data: pendingCount, error: pendingError } = await supabase
+        const { count: pendingCount, error: pendingError } = await supabase
           .from('offenders')
           .select('id', { count: 'exact', head: true })
           .eq('registration_status', 'pending');
           
         if (pendingError) throw pendingError;
         
-        const { data: expiredCount, error: expiredError } = await supabase
+        const { count: expiredCount, error: expiredError } = await supabase
           .from('offenders')
           .select('id', { count: 'exact', head: true })
           .eq('registration_status', 'expired');
@@ -55,10 +55,10 @@ const StatisticsSection = () => {
         if (expiredError) throw expiredError;
         
         setStats({
-          totalOffenders: totalCount?.count || 0,
-          activeOffenders: activeCount?.count || 0,
-          pendingOffenders: pendingCount?.count || 0,
-          expiredOffenders: expiredCount?.count || 0,
+          totalOffenders: totalCount || 0,
+          activeOffenders: activeCount || 0,
+          pendingOffenders: pendingCount || 0,
+          expiredOffenders: expiredCount || 0,
         });
         
         // Fetch offense types distribution
@@ -84,9 +84,9 @@ const StatisticsSection = () => {
         
         // Set status distribution data for pie chart
         setStatusData([
-          { name: 'Active', value: activeCount?.count || 0, color: '#EF4444' },
-          { name: 'Pending', value: pendingCount?.count || 0, color: '#F59E0B' },
-          { name: 'Expired', value: expiredCount?.count || 0, color: '#10B981' },
+          { name: 'Active', value: activeCount || 0, color: '#EF4444' },
+          { name: 'Pending', value: pendingCount || 0, color: '#F59E0B' },
+          { name: 'Expired', value: expiredCount || 0, color: '#10B981' },
         ]);
         
         // Setup geographical distribution (mocked data for now)
@@ -101,7 +101,7 @@ const StatisticsSection = () => {
         ]);
         
         // Check if we actually have data
-        setDataAvailable((totalCount?.count || 0) > 0);
+        setDataAvailable((totalCount || 0) > 0);
         
       } catch (error) {
         console.error('Error fetching statistics:', error);
