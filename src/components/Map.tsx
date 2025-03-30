@@ -16,8 +16,8 @@ const Map: React.FC = () => {
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: mapStyle,
-      center: [-74.5, 40], // Example coordinates
-      zoom: 9,
+      center: [-77.3754, 25.0443], // Nassau, Bahamas
+      zoom: 11,
     });
 
     mapRef.current = map; // Store map instance
