@@ -6,6 +6,8 @@ import OffenseTypeChart from "./OffenseTypeChart";
 import StatusDistributionChart from "./StatusDistributionChart";
 import GeographicalDistributionChart from "./GeographicalDistributionChart";
 import { AlertTriangle, ChartBar, TrendingUp, Info } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartContainer } from "@/components/ui/chart";
 
 const StatisticsSection = () => {
   const [loading, setLoading] = useState(true);
@@ -184,12 +186,18 @@ const StatisticsSection = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <OffenseTypeChart data={offenseTypeData} />
-          <StatusDistributionChart data={statusData} />
+          <ChartContainer>
+            <OffenseTypeChart data={offenseTypeData} />
+          </ChartContainer>
+          <ChartContainer>
+            <StatusDistributionChart data={statusData} />
+          </ChartContainer>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <GeographicalDistributionChart data={geographicalData} />
+          <ChartContainer>
+            <GeographicalDistributionChart data={geographicalData} />
+          </ChartContainer>
         </div>
       </div>
     </section>
