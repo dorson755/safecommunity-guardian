@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import SearchBar from "@/components/SearchBar";
@@ -50,7 +49,6 @@ const Index = () => {
   const [dataAvailable, setDataAvailable] = useState(false);
   
   useEffect(() => {
-    // Check if there is data in the database
     const checkDataAvailability = async () => {
       try {
         const { count, error } = await supabase
@@ -70,10 +68,8 @@ const Index = () => {
 
   const handleSearch = async (query: string, filters: any) => {
     try {
-      // Create base query
       let supaQuery = supabase.from('offenders').select('*');
       
-      // Add filters if provided
       if (query) {
         supaQuery = supaQuery.or(`name.ilike.%${query}%,offense_type.ilike.%${query}%,last_known_address.ilike.%${query}%`);
       }
@@ -86,18 +82,15 @@ const Index = () => {
         supaQuery = supaQuery.eq('registration_status', filters.status);
       }
       
-      // Execute query
       const { data, error } = await supaQuery;
       
       if (error) throw error;
       
-      // Transform data to Offender type
       const results = data.map(offender => transformOffenderFromDB(offender));
       
       setSearchResults(results);
       setHasSearched(true);
       
-      // Log the search
       try {
         await supabase.from('search_logs').insert({
           search_query: query,
@@ -176,7 +169,7 @@ const Index = () => {
       </section>
       
       {/* Map Section */}
-      <section className="py-12 md:py-20 bg-white">
+      <section id="map-section" className="py-12 md:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Offender Heat Map</h2>
@@ -266,7 +259,7 @@ const Index = () => {
         </section>
       )}
       
-      {/* Statistics Section - Added here */}
+      {/* Statistics Section */}
       <StatisticsSection />
       
       {/* Features Section */}

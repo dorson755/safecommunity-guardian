@@ -30,6 +30,17 @@ const Navbar = () => {
   }, []);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+  
+  // Function to scroll to map section
+  const scrollToMap = () => {
+    const mapSection = document.querySelector('section:has(#map-section)');
+    if (mapSection) {
+      mapSection.scrollIntoView({ behavior: 'smooth' });
+    }
+    if (isMenuOpen) {
+      setIsMenuOpen(false);
+    }
+  };
 
   return (
     <nav
@@ -65,16 +76,14 @@ const Navbar = () => {
             </Button>
 
             {isMenuOpen && (
-              <div className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-md shadow-md p-4 flex flex-col space-y-2 animate-fade-in">
+              <div className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-md shadow-md p-4 flex flex-col space-y-2 animate-fade-in max-h-[80vh] overflow-y-auto">
                 <Button variant="ghost" className="justify-start" asChild>
-                  <Link to="/">
+                  <Link to="/" onClick={() => setIsMenuOpen(false)}>
                     <Search className="mr-2 h-4 w-4" /> Search Registry
                   </Link>
                 </Button>
-                <Button variant="ghost" className="justify-start" asChild>
-                  <Link to="/">
-                    <Map className="mr-2 h-4 w-4" /> View Map
-                  </Link>
+                <Button variant="ghost" className="justify-start" onClick={scrollToMap}>
+                  <Map className="mr-2 h-4 w-4" /> View Map
                 </Button>
                 
                 <Button variant="ghost" className="justify-start font-medium" disabled>
@@ -82,13 +91,13 @@ const Navbar = () => {
                 </Button>
                 
                 <Button variant="ghost" className="justify-start pl-6" asChild>
-                  <Link to="/safety-guide">Safety Guide</Link>
+                  <Link to="/safety-guide" onClick={() => setIsMenuOpen(false)}>Safety Guide</Link>
                 </Button>
                 <Button variant="ghost" className="justify-start pl-6" asChild>
-                  <Link to="/legal-information">Legal Information</Link>
+                  <Link to="/legal-information" onClick={() => setIsMenuOpen(false)}>Legal Information</Link>
                 </Button>
                 <Button variant="ghost" className="justify-start pl-6" asChild>
-                  <Link to="/privacy-tools">Privacy Tools</Link>
+                  <Link to="/privacy-tools" onClick={() => setIsMenuOpen(false)}>Privacy Tools</Link>
                 </Button>
                 
                 <Button variant="ghost" className="justify-start font-medium" disabled>
@@ -96,13 +105,13 @@ const Navbar = () => {
                 </Button>
                 
                 <Button variant="ghost" className="justify-start pl-6" asChild>
-                  <Link to="/about-us">About Us</Link>
+                  <Link to="/about-us" onClick={() => setIsMenuOpen(false)}>About Us</Link>
                 </Button>
                 <Button variant="ghost" className="justify-start pl-6" asChild>
-                  <Link to="/contact">Contact</Link>
+                  <Link to="/contact" onClick={() => setIsMenuOpen(false)}>Contact</Link>
                 </Button>
                 <Button variant="ghost" className="justify-start pl-6" asChild>
-                  <Link to="/careers">Careers</Link>
+                  <Link to="/careers" onClick={() => setIsMenuOpen(false)}>Careers</Link>
                 </Button>
                 
                 <Button variant="ghost" className="justify-start font-medium" disabled>
@@ -110,13 +119,13 @@ const Navbar = () => {
                 </Button>
                 
                 <Button variant="ghost" className="justify-start pl-6" asChild>
-                  <Link to="/privacy-policy">Privacy Policy</Link>
+                  <Link to="/privacy-policy" onClick={() => setIsMenuOpen(false)}>Privacy Policy</Link>
                 </Button>
                 <Button variant="ghost" className="justify-start pl-6" asChild>
-                  <Link to="/terms-of-service">Terms of Service</Link>
+                  <Link to="/terms-of-service" onClick={() => setIsMenuOpen(false)}>Terms of Service</Link>
                 </Button>
                 <Button variant="ghost" className="justify-start pl-6" asChild>
-                  <Link to="/compliance">Compliance</Link>
+                  <Link to="/compliance" onClick={() => setIsMenuOpen(false)}>Compliance</Link>
                 </Button>
                 
                 <Button className="w-full mt-2">Sign In</Button>
@@ -136,11 +145,9 @@ const Navbar = () => {
                 </NavigationMenuItem>
                 
                 <NavigationMenuItem>
-                  <Link to="/">
-                    <Button variant="ghost" className="text-foreground/80 hover:text-foreground">
-                      <Map className="mr-2 h-4 w-4" /> View Map
-                    </Button>
-                  </Link>
+                  <Button variant="ghost" className="text-foreground/80 hover:text-foreground" onClick={scrollToMap}>
+                    <Map className="mr-2 h-4 w-4" /> View Map
+                  </Button>
                 </NavigationMenuItem>
                 
                 <NavigationMenuItem>
