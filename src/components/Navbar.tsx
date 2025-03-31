@@ -78,7 +78,7 @@ const Navbar = () => {
             {isMenuOpen && (
               <div className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-md shadow-md p-4 flex flex-col space-y-2 animate-fade-in max-h-[80vh] overflow-y-auto">
                 <Button variant="ghost" className="justify-start" asChild>
-                  <Link to="/" onClick={() => setIsMenuOpen(false)}>
+                  <Link to="/search" onClick={() => setIsMenuOpen(false)}>
                     <Search className="mr-2 h-4 w-4" /> Search Registry
                   </Link>
                 </Button>
@@ -137,7 +137,7 @@ const Navbar = () => {
             <NavigationMenu>
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <Link to="/">
+                  <Link to="/search">
                     <Button variant="ghost" className="text-foreground/80 hover:text-foreground">
                       <Search className="mr-2 h-4 w-4" /> Search Registry
                     </Button>

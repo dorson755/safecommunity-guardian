@@ -1,15 +1,37 @@
+
 import React, { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 mapboxgl.accessToken = "pk.eyJ1IjoiZG9yc29uNzU1IiwiYSI6ImNtOHY4NGFtZjBnZGUyaXB5cnlvb2o3YXcifQ.WIflBvozGkmWz-zrHoDUvw";
 
-const Map: React.FC = () => {
+interface MapProps {
+  heatmapData?: { coordinates: [number, number]; intensity: number }[];
+  zoomToResults?: boolean;
+}
+
+const Map: React.FC<MapProps> = ({ heatmapData, zoomToResults = false }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [mapStyle, setMapStyle] = useState("mapbox://styles/mapbox/dark-v11");
   const mapRef = useRef<mapboxgl.Map | null>(null);
 
   const generateHeatmapData = (): GeoJSON.FeatureCollection<GeoJSON.Point> => {
+    if (heatmapData && heatmapData.length > 0) {
+      // Use provided data if available
+      return {
+        type: "FeatureCollection" as const,
+        features: heatmapData.map(point => ({
+          type: "Feature" as const,
+          properties: { intensity: point.intensity },
+          geometry: {
+            type: "Point" as const,
+            coordinates: point.coordinates
+          }
+        }))
+      };
+    }
+
+    // Default demo data if no data provided
     const features: GeoJSON.Feature<GeoJSON.Point>[] = [];
 
     // Helper to create clusters
@@ -43,6 +65,25 @@ const Map: React.FC = () => {
     };
   };
 
+  // Function to fit the map to the heatmap points
+  const fitMapToData = (map: mapboxgl.Map, data: GeoJSON.FeatureCollection) => {
+    if (!data.features || data.features.length === 0) return;
+    
+    const bounds = new mapboxgl.LngLatBounds();
+    
+    data.features.forEach(feature => {
+      if (feature.geometry.type === 'Point') {
+        bounds.extend(feature.geometry.coordinates as [number, number]);
+      }
+    });
+    
+    map.fitBounds(bounds, {
+      padding: 50,
+      maxZoom: 14,
+      duration: 1000
+    });
+  };
+
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
@@ -58,9 +99,11 @@ const Map: React.FC = () => {
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
 
     map.on("load", () => {
+      const heatmapData = generateHeatmapData();
+      
       map.addSource("heatmap-data", {
         type: "geojson",
-        data: generateHeatmapData(),
+        data: heatmapData,
       });
 
       map.addLayer({
@@ -97,10 +140,33 @@ const Map: React.FC = () => {
           "heatmap-opacity": 0.75,
         },
       });
+      
+      // If zoomToResults is true and we have actual data, fit the map to that data
+      if (zoomToResults && heatmapData && heatmapData.features.length > 0) {
+        fitMapToData(map, heatmapData);
+      }
     });
 
     return () => map.remove();
   }, [mapStyle]);
+
+  // Update the heatmap data when it changes
+  useEffect(() => {
+    if (!mapRef.current || !mapRef.current.isStyleLoaded()) return;
+    
+    const map = mapRef.current;
+    const source = map.getSource('heatmap-data');
+    
+    if (source && source.type === 'geojson') {
+      const data = generateHeatmapData();
+      (source as mapboxgl.GeoJSONSource).setData(data);
+      
+      // Zoom to fit the data if requested
+      if (zoomToResults && data.features.length > 0) {
+        fitMapToData(map, data);
+      }
+    }
+  }, [heatmapData, zoomToResults]);
 
   const toggleMapStyle = () => {
     const newStyle = mapStyle.includes("satellite")
@@ -110,7 +176,7 @@ const Map: React.FC = () => {
   };
 
   return (
-    <div style={{ position: "relative", width: "100%", height: "600px" }}>
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div ref={mapContainerRef} style={{ width: "100%", height: "100%" }} />
       <button
         onClick={toggleMapStyle}
