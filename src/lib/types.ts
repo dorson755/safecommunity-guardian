@@ -18,7 +18,8 @@ export type Offender = {
   registrationStatus: "active" | "pending" | "expired";
   convictionDate: string;
   lastKnownAddress: string;
-  coordinates: [number, number]; // [longitude, latitude]
+  longitude: number;
+  latitude: number;
   crimeDetails: string;
   lastUpdate: string;
 };

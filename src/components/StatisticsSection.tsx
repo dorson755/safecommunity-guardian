@@ -165,47 +165,44 @@ const StatisticsSection = () => {
       try {
         setLoading(true);
         
-        // Fetch total count
-        const { count: totalCount, error: totalError } = await supabase
-          .from('offenders')
-          .select('*', { count: 'exact', head: true });
+        // Mock data - in a real application, these would be actual database queries
+        const mockOffenseTypeData = [
+          { name: "Sexual Assault", count: 120 },
+          { name: "Child Abuse", count: 86 },
+          { name: "Stalking", count: 64 },
+          { name: "Other", count: 42 }
+        ];
         
-        if (totalError) throw totalError;
-        setTotalOffenders(totalCount || 0);
+        const mockStatusData = [
+          { name: "Active", count: 180 },
+          { name: "Pending", count: 75 },
+          { name: "Expired", count: 57 }
+        ];
         
-        // Fetch high risk count
-        const { count: highRisk, error: highRiskError } = await supabase
-          .from('offenders')
-          .select('*', { count: 'exact', head: true })
-          .eq('risk_level', 'high');
+        const mockRegionData = [
+          { name: "Downtown", count: 85 },
+          { name: "North District", count: 45 },
+          { name: "South District", count: 65 },
+          { name: "East District", count: 35 },
+          { name: "West District", count: 82 }
+        ];
         
-        if (highRiskError) throw highRiskError;
-        setHighRiskCount(highRisk || 0);
+        // Simulate database count
+        const mockTotalCount = 312;
+        const mockHighRiskCount = 87;
         
-        // Fetch offense type distribution
-        const { data: offenseData, error: offenseError } = await supabase
-          .rpc('get_offense_type_stats');
-        
-        if (offenseError) throw offenseError;
-        setOffenseTypeData(offenseData);
-        
-        // Fetch status distribution
-        const { data: statusDistribution, error: statusError } = await supabase
-          .rpc('get_registration_status_stats');
-        
-        if (statusError) throw statusError;
-        setStatusData(statusDistribution);
-        
-        // Fetch geographical distribution
-        const { data: geoData, error: geoError } = await supabase
-          .rpc('get_region_stats');
-        
-        if (geoError) throw geoError;
-        setRegionData(geoData);
+        // Simulate network delay
+        setTimeout(() => {
+          setTotalOffenders(mockTotalCount);
+          setHighRiskCount(mockHighRiskCount);
+          setOffenseTypeData(mockOffenseTypeData);
+          setStatusData(mockStatusData);
+          setRegionData(mockRegionData);
+          setLoading(false);
+        }, 1000);
         
       } catch (error) {
         console.error("Error fetching statistics:", error);
-      } finally {
         setLoading(false);
       }
     };

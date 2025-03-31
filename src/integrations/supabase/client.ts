@@ -15,22 +15,6 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 export const transformOffenderFromDB = (offenderRecord: any): any => {
   if (!offenderRecord) return null;
   
-  // Parse WKB/WKT format or extract coordinates from PostGIS point
-  let coordinates: [number, number] = [0, 0];
-  
-  if (offenderRecord.location) {
-    try {
-      // Extract coordinates from PostGIS geography point
-      // The format is typically 'POINT(longitude latitude)'
-      const match = offenderRecord.location.match(/POINT\(([^ ]+) ([^)]+)\)/);
-      if (match && match.length === 3) {
-        coordinates = [parseFloat(match[1]), parseFloat(match[2])];
-      }
-    } catch (error) {
-      console.error('Error parsing coordinates:', error);
-    }
-  }
-  
   return {
     id: offenderRecord.id,
     name: offenderRecord.name,
@@ -38,23 +22,22 @@ export const transformOffenderFromDB = (offenderRecord: any): any => {
     registrationStatus: offenderRecord.registration_status,
     convictionDate: offenderRecord.conviction_date,
     lastKnownAddress: offenderRecord.last_known_address,
-    coordinates: coordinates,
+    longitude: offenderRecord.longitude,
+    latitude: offenderRecord.latitude,
     crimeDetails: offenderRecord.crime_details || '',
     lastUpdate: offenderRecord.last_update
   };
 };
 
 export const transformOffenderToDB = (offender: any) => {
-  const [longitude, latitude] = offender.coordinates;
-  
   return {
     name: offender.name,
     offense_type: offender.offenseType,
     registration_status: offender.registrationStatus,
     conviction_date: offender.convictionDate,
     last_known_address: offender.lastKnownAddress,
-    // For PostGIS, we need to use ST_MakePoint and geography type casting
-    location: `POINT(${longitude} ${latitude})`,
+    longitude: offender.longitude,
+    latitude: offender.latitude,
     crime_details: offender.crimeDetails,
     last_update: new Date().toISOString()
   };
