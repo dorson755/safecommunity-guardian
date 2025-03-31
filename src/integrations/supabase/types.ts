@@ -43,7 +43,8 @@ export type Database = {
           id: string
           last_known_address: string
           last_update: string
-          location: unknown
+          latitude: number
+          longitude: number
           name: string
           offense_type: string
           registration_status: Database["public"]["Enums"]["registration_status"]
@@ -54,7 +55,8 @@ export type Database = {
           id?: string
           last_known_address: string
           last_update?: string
-          location: unknown
+          latitude: number
+          longitude: number
           name: string
           offense_type: string
           registration_status?: Database["public"]["Enums"]["registration_status"]
@@ -65,7 +67,8 @@ export type Database = {
           id?: string
           last_known_address?: string
           last_update?: string
-          location?: unknown
+          latitude?: number
+          longitude?: number
           name?: string
           offense_type?: string
           registration_status?: Database["public"]["Enums"]["registration_status"]
