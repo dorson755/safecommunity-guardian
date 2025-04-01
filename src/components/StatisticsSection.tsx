@@ -122,18 +122,28 @@ const StatusDistributionChart = ({ data, loading }: {
 
 type OffenseTimelineData = {
   date: string;
-  count: number;
-  offenseType: string;
-}
+  [offenseType: string]: string | number;
+};
 
-const OffenseTimelineChart = ({ data, loading, timeRange, setTimeRange, selectedOffenseTypes, setSelectedOffenseTypes }: {
+const OffenseTimelineChart = ({ 
+  data, 
+  loading, 
+  timeRange, 
+  setTimeRange, 
+  selectedOffenseTypes, 
+  setSelectedOffenseTypes,
+  offenseTypes
+}: {
   data: OffenseTimelineData[] | null;
   loading: boolean;
   timeRange: string;
   setTimeRange: (range: string) => void;
   selectedOffenseTypes: string[];
   setSelectedOffenseTypes: (types: string[]) => void;
+  offenseTypes: string[];
 }) => {
+  const [activeChart, setActiveChart] = useState<string>(selectedOffenseTypes[0] || (offenseTypes.length > 0 ? offenseTypes[0] : ""));
+
   if (loading) {
     return (
       <div className="h-full w-full flex items-center justify-center">
@@ -150,33 +160,29 @@ const OffenseTimelineChart = ({ data, loading, timeRange, setTimeRange, selected
     );
   }
 
-  // Get unique offense types
-  const offenseTypes = Array.from(new Set(data.map(item => item.offenseType)));
-
-  // Process data by grouping by date
-  const processedData: Record<string, any> = {};
-  data.forEach(item => {
-    if (!processedData[item.date]) {
-      processedData[item.date] = { date: item.date };
-      // Initialize all offense types to 0
-      offenseTypes.forEach(type => {
-        processedData[item.date][type] = 0;
-      });
-    }
-    
-    // Only include selected offense types or all if none selected
-    if (selectedOffenseTypes.length === 0 || selectedOffenseTypes.includes(item.offenseType)) {
-      processedData[item.date][item.offenseType] += item.count;
-    }
+  // Calculate totals for each offense type
+  const totals: Record<string, number> = {};
+  offenseTypes.forEach(type => {
+    totals[type] = data.reduce((acc, item) => acc + (Number(item[type]) || 0), 0);
   });
 
-  const chartData = Object.values(processedData).sort((a, b) => 
-    new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    switch (timeRange) {
+      case 'month':
+        return date.toLocaleDateString('en-US', { day: 'numeric' });
+      case 'year':
+        return date.toLocaleDateString('en-US', { month: 'short' });
+      case '5years':
+        return `${date.toLocaleDateString('en-US', { year: 'numeric' })} Q${Math.ceil((date.getMonth() + 1) / 3)}`;
+      default:
+        return date.toLocaleDateString('en-US', { year: 'numeric' });
+    }
+  };
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex flex-col gap-2 mb-4">
         <Tabs value={timeRange} onValueChange={setTimeRange} className="w-full">
           <TabsList className="grid grid-cols-4 mb-4">
             <TabsTrigger value="month">Month</TabsTrigger>
@@ -185,7 +191,33 @@ const OffenseTimelineChart = ({ data, loading, timeRange, setTimeRange, selected
             <TabsTrigger value="all">All Time</TabsTrigger>
           </TabsList>
         </Tabs>
-        <div className="flex flex-wrap gap-2 mb-4 w-full">
+        
+        {/* Type selection buttons */}
+        <div className="flex flex-wrap gap-2 mb-4 border-b pb-4">
+          {offenseTypes.map((type, index) => (
+            <button
+              key={type}
+              data-active={activeChart === type}
+              className={`flex flex-1 flex-col justify-center gap-1 px-4 py-2 text-left rounded-md border 
+                ${activeChart === type ? 'bg-muted/50 border-primary' : 'hover:bg-muted/20'}`}
+              onClick={() => {
+                setActiveChart(type);
+                if (!selectedOffenseTypes.includes(type)) {
+                  setSelectedOffenseTypes([...selectedOffenseTypes, type]);
+                }
+              }}
+            >
+              <span className="text-xs text-muted-foreground">
+                {type}
+              </span>
+              <span className="text-lg font-bold leading-none">
+                {totals[type].toLocaleString()}
+              </span>
+            </button>
+          ))}
+        </div>
+        
+        <div className="flex flex-wrap gap-2 mb-4">
           <Button
             variant={selectedOffenseTypes.length === 0 ? "default" : "outline"}
             size="sm"
@@ -207,20 +239,37 @@ const OffenseTimelineChart = ({ data, loading, timeRange, setTimeRange, selected
                 }
               }}
               className="text-xs"
-              style={{ borderColor: COLORS[index % COLORS.length], color: selectedOffenseTypes.includes(type) ? 'white' : COLORS[index % COLORS.length] }}
+              style={{ 
+                borderColor: COLORS[index % COLORS.length], 
+                color: selectedOffenseTypes.includes(type) ? 'white' : COLORS[index % COLORS.length],
+                backgroundColor: selectedOffenseTypes.includes(type) ? COLORS[index % COLORS.length] : 'transparent'
+              }}
             >
               {type}
             </Button>
           ))}
         </div>
       </div>
+      
       <div className="flex-grow">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData}>
-            <XAxis dataKey="date" />
-            <YAxis />
+          <LineChart 
+            data={data}
+            margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+          >
             <CartesianGrid strokeDasharray="3 3" />
-            <Tooltip />
+            <XAxis 
+              dataKey="date" 
+              tickFormatter={formatDate}
+              minTickGap={20}
+            />
+            <YAxis />
+            <Tooltip
+              labelFormatter={(value) => {
+                return formatDate(value);
+              }}
+              formatter={(value, name) => [value, name]}
+            />
             <Legend />
             {offenseTypes.map((type, index) => (
               (selectedOffenseTypes.length === 0 || selectedOffenseTypes.includes(type)) && (
@@ -230,7 +279,8 @@ const OffenseTimelineChart = ({ data, loading, timeRange, setTimeRange, selected
                   dataKey={type} 
                   stroke={COLORS[index % COLORS.length]} 
                   name={type} 
-                  strokeWidth={2}
+                  strokeWidth={activeChart === type ? 3 : 2}
+                  dot={activeChart === type ? { r: 4 } : { r: 3 }}
                   activeDot={{ r: 8 }}
                 />
               )
@@ -252,6 +302,7 @@ const StatisticsSection = () => {
   const [timelineData, setTimelineData] = useState<OffenseTimelineData[] | null>(null);
   const [timeRange, setTimeRange] = useState<string>("year");
   const [selectedOffenseTypes, setSelectedOffenseTypes] = useState<string[]>([]);
+  const [allOffenseTypes, setAllOffenseTypes] = useState<string[]>([]);
   
   const fetchStatistics = async () => {
     try {
@@ -299,6 +350,16 @@ const StatisticsSection = () => {
         count
       })).sort((a, b) => b.count - a.count);
       
+      // Extract all unique offense types
+      const offenseTypes = Object.keys(offenseMap);
+      setAllOffenseTypes(offenseTypes);
+      
+      // If no offense type is selected, select the most common one
+      if (selectedOffenseTypes.length === 0 && offenseTypes.length > 0) {
+        const mostCommonType = processedOffenseData[0].name;
+        setSelectedOffenseTypes([mostCommonType]);
+      }
+      
       // Get status distribution
       const { data: statusData, error: statusError } = await supabase
         .from('offenders')
@@ -326,64 +387,79 @@ const StatisticsSection = () => {
       if (convictionError) throw convictionError;
       
       // Process timeline data
-      const timelineMap: Record<string, Record<string, number>> = {};
+      const timelineMap = new Map<string, Record<string, number>>();
       
-      // Convert date based on selected time range
-      convictionData.forEach(item => {
-        if (!item.conviction_date) return;
+      // Helper function to get date key based on time range
+      const getDateKey = (dateStr: string, range: string): string => {
+        if (!dateStr) return '';
         
-        let dateKey;
-        const convictionDate = new Date(item.conviction_date);
+        const date = new Date(dateStr);
         
-        // Format the date according to the time range
-        switch (timeRange) {
+        switch (range) {
           case 'month':
-            // Format as YYYY-MM-DD but only include data from the past month
+            // Format as YYYY-MM-DD for the current month
+            const now = new Date();
             const oneMonthAgo = new Date();
-            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-            if (convictionDate < oneMonthAgo) return;
-            dateKey = convictionDate.toISOString().split('T')[0];
-            break;
+            oneMonthAgo.setMonth(now.getMonth() - 1);
+            if (date < oneMonthAgo) {
+              return '';
+            }
+            return dateStr.split('T')[0]; // YYYY-MM-DD
+            
           case 'year':
-            // Format as YYYY-MM for the past year
-            const oneYearAgo = new Date();
-            oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-            if (convictionDate < oneYearAgo) return;
-            dateKey = `${convictionDate.getFullYear()}-${(convictionDate.getMonth() + 1).toString().padStart(2, '0')}`;
-            break;
+            // Format as YYYY-MM for the current year
+            const thisYear = new Date().getFullYear();
+            const year = date.getFullYear();
+            if (year !== thisYear) {
+              return '';
+            }
+            return `${year}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+            
           case '5years':
-            // Format as YYYY for the past 5 years
+            // Format as YYYY-Q for the last 5 years
             const fiveYearsAgo = new Date();
             fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
-            if (convictionDate < fiveYearsAgo) return;
-            dateKey = `${convictionDate.getFullYear()}-${Math.floor(convictionDate.getMonth() / 3) + 1}Q`;
-            break;
+            if (date < fiveYearsAgo) {
+              return '';
+            }
+            return `${date.getFullYear()}-${Math.floor(date.getMonth() / 3) + 1}`;
+            
           case 'all':
           default:
             // Format as YYYY for all time
-            dateKey = `${convictionDate.getFullYear()}`;
-            break;
+            return `${date.getFullYear()}`;
         }
+      };
+
+      // Convert to processed timeline data format suitable for the chart
+      convictionData.forEach(item => {
+        if (!item.conviction_date) return;
         
-        if (!timelineMap[dateKey]) {
-          timelineMap[dateKey] = {};
+        const dateKey = getDateKey(item.conviction_date, timeRange);
+        if (!dateKey) return; // Skip if outside of the time range
+        
+        if (!timelineMap.has(dateKey)) {
+          timelineMap.set(dateKey, {});
         }
         
         const offenseType = item.offense_type;
-        timelineMap[dateKey][offenseType] = (timelineMap[dateKey][offenseType] || 0) + 1;
+        const currentData = timelineMap.get(dateKey)!;
+        currentData[offenseType] = (currentData[offenseType] || 0) + 1;
       });
       
-      // Convert to array format for chart
-      const processedTimelineData: OffenseTimelineData[] = [];
-      Object.entries(timelineMap).forEach(([date, offenses]) => {
-        Object.entries(offenses).forEach(([offenseType, count]) => {
-          processedTimelineData.push({
-            date,
-            offenseType,
-            count
+      // Convert map to array and ensure all offense types are represented
+      const processedTimelineData: OffenseTimelineData[] = Array.from(timelineMap.entries())
+        .map(([date, typeCountMap]) => {
+          const entry: OffenseTimelineData = { date };
+          
+          // Initialize all offense types with 0
+          offenseTypes.forEach(type => {
+            entry[type] = typeCountMap[type] || 0;
           });
-        });
-      });
+          
+          return entry;
+        })
+        .sort((a, b) => a.date.localeCompare(b.date)); // Sort by date
       
       // Update state with fetched data
       setTotalOffenders(totalCount || 0);
@@ -485,6 +561,7 @@ const StatisticsSection = () => {
                   setTimeRange={setTimeRange}
                   selectedOffenseTypes={selectedOffenseTypes}
                   setSelectedOffenseTypes={setSelectedOffenseTypes}
+                  offenseTypes={allOffenseTypes}
                 />
               </ChartContainer>
             </CardContent>
