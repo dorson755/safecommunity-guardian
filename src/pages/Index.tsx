@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/Navbar";
 import SearchBar from "@/components/SearchBar";
 import MapComponent from "@/components/Map";
@@ -39,15 +39,34 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/integrations/supabase/client";
-import { transformOffenderFromDB } from "@/integrations/supabase/client";
+import { supabase, transformOffenderFromDB, insertDemoOffenders } from "@/integrations/supabase/client";
 import StatisticsSection from "@/components/StatisticsSection";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationEllipsis, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious 
+} from "@/components/ui/pagination";
+import { useToast } from "@/components/ui/use-toast";
+
+const RESULTS_PER_PAGE = 15;
 
 const Index = () => {
   const [searchResults, setSearchResults] = useState<Offender[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [dataAvailable, setDataAvailable] = useState(false);
+  const [searchLocations, setSearchLocations] = useState<{coordinates: [number, number]; intensity: number; id?: string}[]>([]);
+  const [selectedOffenderId, setSelectedOffenderId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const mapSectionRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+  
+  // Create refs for table rows to scroll to
+  const rowRefs = useRef<{[id: string]: HTMLTableRowElement | null}>({});
   
   useEffect(() => {
     const checkDataAvailability = async () => {
@@ -58,14 +77,32 @@ const Index = () => {
         
         if (error) throw error;
         
-        setDataAvailable(count !== null && count > 0);
+        const hasData = count !== null && count > 0;
+        setDataAvailable(hasData);
+        
+        // If we have fewer than 25 records, generate more demo data
+        if (count !== null && count < 25) {
+          const result = await insertDemoOffenders();
+          if (result.success) {
+            toast({
+              title: "Demo Data Added",
+              description: "Additional demo records have been added for demonstration purposes.",
+              duration: 5000,
+            });
+            // Reload the data count
+            const { count: newCount } = await supabase
+              .from('offenders')
+              .select('*', { count: 'exact', head: true });
+            setDataAvailable(newCount !== null && newCount > 0);
+          }
+        }
       } catch (error) {
         console.error("Error checking data availability:", error);
       }
     };
     
     checkDataAvailability();
-  }, []);
+  }, [toast]);
 
   const handleSearch = async (query: string, filters: any) => {
     try {
@@ -91,6 +128,16 @@ const Index = () => {
       
       setSearchResults(results);
       setHasSearched(true);
+      setSelectedOffenderId(null);
+      setCurrentPage(1); // Reset to first page after new search
+      
+      // Extract locations for the map
+      const locations = results.map(offender => ({
+        coordinates: [offender.longitude, offender.latitude] as [number, number],
+        intensity: 1,
+        id: offender.id
+      }));
+      setSearchLocations(locations);
       
       try {
         await supabase.from('search_logs').insert({
@@ -100,10 +147,39 @@ const Index = () => {
       } catch (logError) {
         console.error("Error logging search:", logError);
       }
+      
+      // Scroll to map section after search completes
+      setTimeout(() => {
+        if (mapSectionRef.current) {
+          mapSectionRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
     } catch (error) {
       console.error("Error searching offenders:", error);
       setSearchResults([]);
+      setSearchLocations([]);
       setHasSearched(true);
+    }
+  };
+
+  const handlePointClick = (id: string) => {
+    setSelectedOffenderId(id);
+    
+    // Find which page the offender is on
+    const offenderIndex = searchResults.findIndex(o => o.id === id);
+    if (offenderIndex >= 0) {
+      const page = Math.floor(offenderIndex / RESULTS_PER_PAGE) + 1;
+      setCurrentPage(page);
+      
+      // Give time for the page to render then scroll to row
+      setTimeout(() => {
+        if (rowRefs.current[id]) {
+          rowRefs.current[id]?.scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'center'
+          });
+        }
+      }, 100);
     }
   };
 
@@ -118,6 +194,62 @@ const Index = () => {
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
+  };
+  
+  // Pagination calculations
+  const totalPages = Math.ceil(searchResults.length / RESULTS_PER_PAGE);
+  const paginatedResults = searchResults.slice(
+    (currentPage - 1) * RESULTS_PER_PAGE,
+    currentPage * RESULTS_PER_PAGE
+  );
+  
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+    
+    return (
+      <Pagination className="mt-6">
+        <PaginationContent>
+          {currentPage > 1 && (
+            <PaginationItem>
+              <PaginationPrevious onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} />
+            </PaginationItem>
+          )}
+          
+          {[...Array(totalPages)].map((_, i) => {
+            const pageNumber = i + 1;
+            // Show first page, last page, and pages around current page
+            if (
+              pageNumber === 1 || 
+              pageNumber === totalPages || 
+              (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+            ) {
+              return (
+                <PaginationItem key={pageNumber}>
+                  <PaginationLink 
+                    isActive={pageNumber === currentPage}
+                    onClick={() => setCurrentPage(pageNumber)}
+                  >
+                    {pageNumber}
+                  </PaginationLink>
+                </PaginationItem>
+              );
+            } else if (
+              (pageNumber === 2 && currentPage > 3) || 
+              (pageNumber === totalPages - 1 && currentPage < totalPages - 2)
+            ) {
+              return <PaginationEllipsis key={pageNumber} />;
+            }
+            return null;
+          })}
+          
+          {currentPage < totalPages && (
+            <PaginationItem>
+              <PaginationNext onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} />
+            </PaginationItem>
+          )}
+        </PaginationContent>
+      </Pagination>
+    );
   };
 
   return (
@@ -170,7 +302,7 @@ const Index = () => {
       </section>
       
       {/* Map Section */}
-      <section id="map-section" className="py-12 md:py-20 bg-white">
+      <section id="map-section" ref={mapSectionRef} className="py-12 md:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Offender Heat Map</h2>
@@ -180,7 +312,11 @@ const Index = () => {
           </div>
           
           <div className="h-[500px] rounded-lg overflow-hidden shadow-lg border">
-            <MapComponent />
+            <MapComponent 
+              heatmapData={searchLocations} 
+              zoomToResults={hasSearched && searchLocations.length > 0}
+              onPointClick={handlePointClick}
+            />
           </div>
           
           {!dataAvailable && (
@@ -206,45 +342,55 @@ const Index = () => {
             </div>
             
             {searchResults.length > 0 ? (
-              <div className="overflow-hidden rounded-lg border shadow-sm animate-fade-in">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Offense Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Last Known Address</TableHead>
-                      <TableHead>Details</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {searchResults.map((offender) => (
-                      <TableRow key={offender.id}>
-                        <TableCell className="font-medium">{offender.name}</TableCell>
-                        <TableCell>{offender.offenseType}</TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant="outline" 
-                            className={getStatusColor(offender.registrationStatus)}
-                          >
-                            {offender.registrationStatus.charAt(0).toUpperCase() + offender.registrationStatus.slice(1)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{offender.lastKnownAddress}</TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => setIsAuthModalOpen(true)}
-                          >
-                            View <ArrowRight className="ml-1 h-3 w-3" />
-                          </Button>
-                        </TableCell>
+              <>
+                <div className="overflow-hidden rounded-lg border shadow-sm animate-fade-in">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Offense Type</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Last Known Address</TableHead>
+                        <TableHead>Details</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedResults.map((offender) => (
+                        <TableRow 
+                          key={offender.id}
+                          ref={el => rowRefs.current[offender.id] = el}
+                          className={selectedOffenderId === offender.id 
+                            ? "bg-primary/10 transition-colors duration-500" 
+                            : "transition-colors duration-300"}
+                        >
+                          <TableCell className="font-medium">{offender.name}</TableCell>
+                          <TableCell>{offender.offenseType}</TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant="outline" 
+                              className={getStatusColor(offender.registrationStatus)}
+                            >
+                              {offender.registrationStatus.charAt(0).toUpperCase() + offender.registrationStatus.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{offender.lastKnownAddress}</TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setIsAuthModalOpen(true)}
+                            >
+                              View <ArrowRight className="ml-1 h-3 w-3" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                
+                {renderPagination()}
+              </>
             ) : (
               <Card className="text-center p-12 animate-fade-in">
                 <CardContent>

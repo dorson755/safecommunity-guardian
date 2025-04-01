@@ -11,7 +11,7 @@ interface MapProps {
   onPointClick?: (id: string) => void;
 }
 
-const Map: React.FC<MapProps> = ({ heatmapData, zoomToResults = false, onPointClick }) => {
+const Map: React.FC<MapProps> = ({ heatmapData = [], zoomToResults = false, onPointClick }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [mapStyle, setMapStyle] = useState("mapbox://styles/mapbox/dark-v11");
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -36,39 +36,10 @@ const Map: React.FC<MapProps> = ({ heatmapData, zoomToResults = false, onPointCl
       };
     }
 
-    // Default demo data if no data provided - now with at least 25 points
-    const features: GeoJSON.Feature<GeoJSON.Point>[] = [];
-
-    // Helper to create clusters
-    const createCluster = (
-      center: [number, number],
-      count: number,
-      spread: number
-    ) => {
-      return Array(count)
-        .fill(null)
-        .map(() => ({
-          type: "Feature" as const,
-          properties: { intensity: 1, id: null },
-          geometry: {
-            type: "Point" as const,
-            coordinates: [
-              center[0] + (Math.random() - 0.5) * spread,
-              center[1] + (Math.random() - 0.5) * spread,
-            ] as [number, number],
-          },
-        }));
-    };
-
+    // Empty collection when no data provided
     return {
       type: "FeatureCollection" as const,
-      features: [
-        ...createCluster([-77.3754, 25.0443], 12, 0.02), // Dense cluster
-        ...createCluster([-77.42, 25.08], 8, 0.03),     // Medium cluster
-        ...createCluster([-77.34, 25.01], 8, 0.05),     // Medium cluster
-        ...createCluster([-77.38, 25.06], 5, 0.03),     // Smaller cluster
-        ...createCluster([-77.32, 25.05], 5, 0.02),     // Smaller cluster
-      ],
+      features: []
     };
   };
 

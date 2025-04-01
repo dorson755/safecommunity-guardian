@@ -5,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Index from "./pages/Index";
-import Search from "./pages/Search";
 import NotFound from "./pages/NotFound";
 import SafetyGuide from "./pages/SafetyGuide";
 import LegalInformation from "./pages/LegalInformation";
@@ -35,7 +34,6 @@ const App = () => (
         <ScrollToTop />
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/search" element={<Search />} />
           <Route path="/safety-guide" element={<SafetyGuide />} />
           <Route path="/legal-information" element={<LegalInformation />} />
           <Route path="/privacy-tools" element={<PrivacyTools />} />
@@ -45,6 +43,8 @@ const App = () => (
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/compliance" element={<Compliance />} />
+          {/* Redirect /search to homepage */}
+          <Route path="/search" element={<Index />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
