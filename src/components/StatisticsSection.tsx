@@ -9,8 +9,10 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import ChartContainer from "./ChartContainer";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const COLORS = ['#9b87f5', '#7E69AB', '#6E59A5', '#D6BCFA'];
+const COLORS = ['#9b87f5', '#7E69AB', '#6E59A5', '#D6BCFA', '#5b21b6', '#9333ea', '#c084fc', '#a855f7'];
 
 const StatsCard = ({ title, value, description, loading, icon }: { 
   title: string; 
@@ -118,9 +120,19 @@ const StatusDistributionChart = ({ data, loading }: {
   );
 };
 
-const GeographicalDistributionChart = ({ data, loading }: {
-  data: any[] | null;
+type OffenseTimelineData = {
+  date: string;
+  count: number;
+  offenseType: string;
+}
+
+const OffenseTimelineChart = ({ data, loading, timeRange, setTimeRange, selectedOffenseTypes, setSelectedOffenseTypes }: {
+  data: OffenseTimelineData[] | null;
   loading: boolean;
+  timeRange: string;
+  setTimeRange: (range: string) => void;
+  selectedOffenseTypes: string[];
+  setSelectedOffenseTypes: (types: string[]) => void;
 }) => {
   if (loading) {
     return (
@@ -138,17 +150,95 @@ const GeographicalDistributionChart = ({ data, loading }: {
     );
   }
 
+  // Get unique offense types
+  const offenseTypes = Array.from(new Set(data.map(item => item.offenseType)));
+
+  // Process data by grouping by date
+  const processedData: Record<string, any> = {};
+  data.forEach(item => {
+    if (!processedData[item.date]) {
+      processedData[item.date] = { date: item.date };
+      // Initialize all offense types to 0
+      offenseTypes.forEach(type => {
+        processedData[item.date][type] = 0;
+      });
+    }
+    
+    // Only include selected offense types or all if none selected
+    if (selectedOffenseTypes.length === 0 || selectedOffenseTypes.includes(item.offenseType)) {
+      processedData[item.date][item.offenseType] += item.count;
+    }
+  });
+
+  const chartData = Object.values(processedData).sort((a, b) => 
+    new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <LineChart data={data}>
-        <XAxis dataKey="name" />
-        <YAxis />
-        <CartesianGrid strokeDasharray="3 3" />
-        <Tooltip />
-        <Legend />
-        <Line type="monotone" dataKey="count" stroke={COLORS[0]} name="Offenders" />
-      </LineChart>
-    </ResponsiveContainer>
+    <div className="h-full flex flex-col">
+      <div className="flex flex-wrap gap-2 mb-4">
+        <Tabs value={timeRange} onValueChange={setTimeRange} className="w-full">
+          <TabsList className="grid grid-cols-4 mb-4">
+            <TabsTrigger value="month">Month</TabsTrigger>
+            <TabsTrigger value="year">Year</TabsTrigger>
+            <TabsTrigger value="5years">5 Years</TabsTrigger>
+            <TabsTrigger value="all">All Time</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className="flex flex-wrap gap-2 mb-4 w-full">
+          <Button
+            variant={selectedOffenseTypes.length === 0 ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSelectedOffenseTypes([])}
+            className="text-xs"
+          >
+            All Types
+          </Button>
+          {offenseTypes.map((type, index) => (
+            <Button
+              key={type}
+              variant={selectedOffenseTypes.includes(type) ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                if (selectedOffenseTypes.includes(type)) {
+                  setSelectedOffenseTypes(selectedOffenseTypes.filter(t => t !== type));
+                } else {
+                  setSelectedOffenseTypes([...selectedOffenseTypes, type]);
+                }
+              }}
+              className="text-xs"
+              style={{ borderColor: COLORS[index % COLORS.length], color: selectedOffenseTypes.includes(type) ? 'white' : COLORS[index % COLORS.length] }}
+            >
+              {type}
+            </Button>
+          ))}
+        </div>
+      </div>
+      <div className="flex-grow">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData}>
+            <XAxis dataKey="date" />
+            <YAxis />
+            <CartesianGrid strokeDasharray="3 3" />
+            <Tooltip />
+            <Legend />
+            {offenseTypes.map((type, index) => (
+              (selectedOffenseTypes.length === 0 || selectedOffenseTypes.includes(type)) && (
+                <Line 
+                  key={type} 
+                  type="monotone" 
+                  dataKey={type} 
+                  stroke={COLORS[index % COLORS.length]} 
+                  name={type} 
+                  strokeWidth={2}
+                  activeDot={{ r: 8 }}
+                />
+              )
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 };
 
@@ -156,59 +246,168 @@ const StatisticsSection = () => {
   const [loading, setLoading] = useState(true);
   const [totalOffenders, setTotalOffenders] = useState(0);
   const [highRiskCount, setHighRiskCount] = useState(0);
+  const [activeCount, setActiveCount] = useState(0);
   const [offenseTypeData, setOffenseTypeData] = useState<any[] | null>(null);
   const [statusData, setStatusData] = useState<any[] | null>(null);
-  const [regionData, setRegionData] = useState<any[] | null>(null);
+  const [timelineData, setTimelineData] = useState<OffenseTimelineData[] | null>(null);
+  const [timeRange, setTimeRange] = useState<string>("year");
+  const [selectedOffenseTypes, setSelectedOffenseTypes] = useState<string[]>([]);
+  
+  const fetchStatistics = async () => {
+    try {
+      setLoading(true);
+      
+      // Get total count
+      const { count: totalCount, error: totalError } = await supabase
+        .from('offenders')
+        .select('*', { count: 'exact', head: true });
+      
+      if (totalError) throw totalError;
+      
+      // Get high risk count (we'll define high risk as offense_type containing 'assault' or 'child')
+      const { data: highRiskData, error: highRiskError } = await supabase
+        .from('offenders')
+        .select('*')
+        .or('offense_type.ilike.%assault%,offense_type.ilike.%child%');
+      
+      if (highRiskError) throw highRiskError;
+      
+      // Get active cases count
+      const { data: activeData, error: activeError } = await supabase
+        .from('offenders')
+        .select('*')
+        .eq('registration_status', 'active');
+      
+      if (activeError) throw activeError;
+      
+      // Get offense type distribution
+      const { data: offenseData, error: offenseError } = await supabase
+        .from('offenders')
+        .select('offense_type');
+      
+      if (offenseError) throw offenseError;
+      
+      // Process offense type data
+      const offenseMap: Record<string, number> = {};
+      offenseData.forEach(item => {
+        const type = item.offense_type;
+        offenseMap[type] = (offenseMap[type] || 0) + 1;
+      });
+      
+      const processedOffenseData = Object.entries(offenseMap).map(([name, count]) => ({
+        name,
+        count
+      })).sort((a, b) => b.count - a.count);
+      
+      // Get status distribution
+      const { data: statusData, error: statusError } = await supabase
+        .from('offenders')
+        .select('registration_status');
+      
+      if (statusError) throw statusError;
+      
+      // Process status data
+      const statusMap: Record<string, number> = {};
+      statusData.forEach(item => {
+        const status = item.registration_status;
+        statusMap[status] = (statusMap[status] || 0) + 1;
+      });
+      
+      const processedStatusData = Object.entries(statusMap).map(([name, count]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        count
+      }));
+      
+      // Get timeline data based on conviction_date
+      const { data: convictionData, error: convictionError } = await supabase
+        .from('offenders')
+        .select('conviction_date, offense_type');
+      
+      if (convictionError) throw convictionError;
+      
+      // Process timeline data
+      const timelineMap: Record<string, Record<string, number>> = {};
+      
+      // Convert date based on selected time range
+      convictionData.forEach(item => {
+        if (!item.conviction_date) return;
+        
+        let dateKey;
+        const convictionDate = new Date(item.conviction_date);
+        
+        // Format the date according to the time range
+        switch (timeRange) {
+          case 'month':
+            // Format as YYYY-MM-DD but only include data from the past month
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+            if (convictionDate < oneMonthAgo) return;
+            dateKey = convictionDate.toISOString().split('T')[0];
+            break;
+          case 'year':
+            // Format as YYYY-MM for the past year
+            const oneYearAgo = new Date();
+            oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+            if (convictionDate < oneYearAgo) return;
+            dateKey = `${convictionDate.getFullYear()}-${(convictionDate.getMonth() + 1).toString().padStart(2, '0')}`;
+            break;
+          case '5years':
+            // Format as YYYY for the past 5 years
+            const fiveYearsAgo = new Date();
+            fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+            if (convictionDate < fiveYearsAgo) return;
+            dateKey = `${convictionDate.getFullYear()}-${Math.floor(convictionDate.getMonth() / 3) + 1}Q`;
+            break;
+          case 'all':
+          default:
+            // Format as YYYY for all time
+            dateKey = `${convictionDate.getFullYear()}`;
+            break;
+        }
+        
+        if (!timelineMap[dateKey]) {
+          timelineMap[dateKey] = {};
+        }
+        
+        const offenseType = item.offense_type;
+        timelineMap[dateKey][offenseType] = (timelineMap[dateKey][offenseType] || 0) + 1;
+      });
+      
+      // Convert to array format for chart
+      const processedTimelineData: OffenseTimelineData[] = [];
+      Object.entries(timelineMap).forEach(([date, offenses]) => {
+        Object.entries(offenses).forEach(([offenseType, count]) => {
+          processedTimelineData.push({
+            date,
+            offenseType,
+            count
+          });
+        });
+      });
+      
+      // Update state with fetched data
+      setTotalOffenders(totalCount || 0);
+      setHighRiskCount(highRiskData?.length || 0);
+      setActiveCount(activeData?.length || 0);
+      setOffenseTypeData(processedOffenseData);
+      setStatusData(processedStatusData);
+      setTimelineData(processedTimelineData);
+      
+    } catch (error) {
+      console.error("Error fetching statistics:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   useEffect(() => {
-    const fetchStatistics = async () => {
-      try {
-        setLoading(true);
-        
-        // Mock data - in a real application, these would be actual database queries
-        const mockOffenseTypeData = [
-          { name: "Sexual Assault", count: 120 },
-          { name: "Child Abuse", count: 86 },
-          { name: "Stalking", count: 64 },
-          { name: "Other", count: 42 }
-        ];
-        
-        const mockStatusData = [
-          { name: "Active", count: 180 },
-          { name: "Pending", count: 75 },
-          { name: "Expired", count: 57 }
-        ];
-        
-        const mockRegionData = [
-          { name: "Downtown", count: 85 },
-          { name: "North District", count: 45 },
-          { name: "South District", count: 65 },
-          { name: "East District", count: 35 },
-          { name: "West District", count: 82 }
-        ];
-        
-        // Simulate database count
-        const mockTotalCount = 312;
-        const mockHighRiskCount = 87;
-        
-        // Simulate network delay
-        setTimeout(() => {
-          setTotalOffenders(mockTotalCount);
-          setHighRiskCount(mockHighRiskCount);
-          setOffenseTypeData(mockOffenseTypeData);
-          setStatusData(mockStatusData);
-          setRegionData(mockRegionData);
-          setLoading(false);
-        }, 1000);
-        
-      } catch (error) {
-        console.error("Error fetching statistics:", error);
-        setLoading(false);
-      }
-    };
-    
     fetchStatistics();
   }, []);
+  
+  // Refetch timeline data when time range changes
+  useEffect(() => {
+    fetchStatistics();
+  }, [timeRange]);
 
   return (
     <section className="py-12 md:py-20">
@@ -236,14 +435,14 @@ const StatisticsSection = () => {
           />
           <StatsCard 
             title="Active Cases" 
-            value={loading ? "—" : "1,245"}
-            description="Updated daily"
+            value={activeCount.toLocaleString()}
+            description="Currently active registrations"
             loading={loading}
             icon={<Badge variant="outline">Active</Badge>}
           />
           <StatsCard 
             title="Compliance Rate" 
-            value={loading ? "—" : "92%"}
+            value={loading ? "—" : `${Math.round((activeCount / totalOffenders) * 100)}%`}
             description="Reporting compliance"
             loading={loading}
             icon={<Badge variant="secondary">Compliance</Badge>}
@@ -275,11 +474,18 @@ const StatisticsSection = () => {
           
           <Card className="col-span-1 lg:col-span-1">
             <CardHeader>
-              <CardTitle>Geographical Distribution</CardTitle>
+              <CardTitle>Offenses Over Time</CardTitle>
             </CardHeader>
-            <CardContent className="h-80">
-              <ChartContainer config={{ height: 300 }}>
-                <GeographicalDistributionChart data={regionData} loading={loading} />
+            <CardContent className="h-96">
+              <ChartContainer config={{ height: 380 }}>
+                <OffenseTimelineChart 
+                  data={timelineData} 
+                  loading={loading} 
+                  timeRange={timeRange}
+                  setTimeRange={setTimeRange}
+                  selectedOffenseTypes={selectedOffenseTypes}
+                  setSelectedOffenseTypes={setSelectedOffenseTypes}
+                />
               </ChartContainer>
             </CardContent>
           </Card>
