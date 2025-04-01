@@ -6,14 +6,16 @@ import "mapbox-gl/dist/mapbox-gl.css";
 mapboxgl.accessToken = "pk.eyJ1IjoiZG9yc29uNzU1IiwiYSI6ImNtOHY4NGFtZjBnZGUyaXB5cnlvb2o3YXcifQ.WIflBvozGkmWz-zrHoDUvw";
 
 interface MapProps {
-  heatmapData?: { coordinates: [number, number]; intensity: number }[];
+  heatmapData?: { coordinates: [number, number]; intensity: number; id?: string }[];
   zoomToResults?: boolean;
+  onPointClick?: (id: string) => void;
 }
 
-const Map: React.FC<MapProps> = ({ heatmapData, zoomToResults = false }) => {
+const Map: React.FC<MapProps> = ({ heatmapData, zoomToResults = false, onPointClick }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [mapStyle, setMapStyle] = useState("mapbox://styles/mapbox/dark-v11");
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const markersRef = useRef<mapboxgl.Marker[]>([]);
 
   const generateHeatmapData = (): GeoJSON.FeatureCollection<GeoJSON.Point> => {
     if (heatmapData && heatmapData.length > 0) {
@@ -22,7 +24,10 @@ const Map: React.FC<MapProps> = ({ heatmapData, zoomToResults = false }) => {
         type: "FeatureCollection" as const,
         features: heatmapData.map(point => ({
           type: "Feature" as const,
-          properties: { intensity: point.intensity },
+          properties: { 
+            intensity: point.intensity,
+            id: point.id || null
+          },
           geometry: {
             type: "Point" as const,
             coordinates: point.coordinates
@@ -44,7 +49,7 @@ const Map: React.FC<MapProps> = ({ heatmapData, zoomToResults = false }) => {
         .fill(null)
         .map(() => ({
           type: "Feature" as const,
-          properties: { intensity: 1 },
+          properties: { intensity: 1, id: null },
           geometry: {
             type: "Point" as const,
             coordinates: [
@@ -81,6 +86,46 @@ const Map: React.FC<MapProps> = ({ heatmapData, zoomToResults = false }) => {
       padding: 50,
       maxZoom: 14,
       duration: 1000
+    });
+  };
+
+  // Clear existing markers
+  const clearMarkers = () => {
+    markersRef.current.forEach(marker => marker.remove());
+    markersRef.current = [];
+  };
+
+  // Add clickable markers when we have real data with IDs
+  const addClickableMarkers = (map: mapboxgl.Map, data: GeoJSON.FeatureCollection) => {
+    if (!data.features || data.features.length === 0 || !onPointClick) return;
+    
+    // Clear any existing markers first
+    clearMarkers();
+    
+    // Add new markers for each point that has an ID
+    data.features.forEach(feature => {
+      const id = feature.properties?.id;
+      if (feature.geometry.type === 'Point' && id) {
+        const el = document.createElement('div');
+        el.className = 'offender-marker';
+        el.style.width = '15px';
+        el.style.height = '15px';
+        el.style.borderRadius = '50%';
+        el.style.backgroundColor = 'rgba(255, 100, 100, 0.8)';
+        el.style.border = '2px solid white';
+        el.style.cursor = 'pointer';
+        
+        const coordinates = feature.geometry.coordinates as [number, number];
+        const marker = new mapboxgl.Marker(el)
+          .setLngLat(coordinates)
+          .addTo(map);
+        
+        el.addEventListener('click', () => {
+          if (onPointClick) onPointClick(id);
+        });
+        
+        markersRef.current.push(marker);
+      }
     });
   };
 
@@ -141,6 +186,9 @@ const Map: React.FC<MapProps> = ({ heatmapData, zoomToResults = false }) => {
         },
       });
       
+      // If we have IDs in our data, add clickable markers
+      addClickableMarkers(map, heatmapData);
+      
       // If zoomToResults is true and we have actual data, fit the map to that data
       if (zoomToResults && heatmapData && heatmapData.features.length > 0) {
         fitMapToData(map, heatmapData);
@@ -161,12 +209,15 @@ const Map: React.FC<MapProps> = ({ heatmapData, zoomToResults = false }) => {
       const data = generateHeatmapData();
       (source as mapboxgl.GeoJSONSource).setData(data);
       
+      // Update clickable markers
+      addClickableMarkers(map, data);
+      
       // Zoom to fit the data if requested
       if (zoomToResults && data.features.length > 0) {
         fitMapToData(map, data);
       }
     }
-  }, [heatmapData, zoomToResults]);
+  }, [heatmapData, zoomToResults, onPointClick]);
 
   const toggleMapStyle = () => {
     const newStyle = mapStyle.includes("satellite")

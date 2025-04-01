@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SearchBar from "@/components/SearchBar";
@@ -25,7 +25,11 @@ const Search = () => {
   const [hasSearched, setHasSearched] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [dataAvailable, setDataAvailable] = useState(false);
-  const [searchLocations, setSearchLocations] = useState<{coordinates: [number, number]; intensity: number}[]>([]);
+  const [searchLocations, setSearchLocations] = useState<{coordinates: [number, number]; intensity: number; id?: string}[]>([]);
+  const [selectedOffenderId, setSelectedOffenderId] = useState<string | null>(null);
+  
+  // Create refs for table rows to scroll to
+  const rowRefs = useRef<{[id: string]: HTMLTableRowElement | null}>({});
   
   useEffect(() => {
     const checkDataAvailability = async () => {
@@ -69,11 +73,13 @@ const Search = () => {
       
       setSearchResults(results);
       setHasSearched(true);
+      setSelectedOffenderId(null);
       
       // Extract locations for the map
       const locations = results.map(offender => ({
         coordinates: [offender.longitude, offender.latitude] as [number, number],
-        intensity: 1
+        intensity: 1,
+        id: offender.id
       }));
       setSearchLocations(locations);
       
@@ -90,6 +96,18 @@ const Search = () => {
       setSearchResults([]);
       setSearchLocations([]);
       setHasSearched(true);
+    }
+  };
+
+  const handlePointClick = (id: string) => {
+    setSelectedOffenderId(id);
+    
+    // Scroll to the corresponding row
+    if (rowRefs.current[id]) {
+      rowRefs.current[id]?.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'center'
+      });
     }
   };
 
@@ -128,7 +146,11 @@ const Search = () => {
           {/* Map */}
           <div className="mb-8 border rounded-lg shadow-sm overflow-hidden">
             <div className="h-[400px]">
-              <MapComponent heatmapData={searchLocations} zoomToResults={hasSearched && searchLocations.length > 0} />
+              <MapComponent 
+                heatmapData={searchLocations} 
+                zoomToResults={hasSearched && searchLocations.length > 0} 
+                onPointClick={handlePointClick}
+              />
             </div>
           </div>
           
@@ -156,7 +178,13 @@ const Search = () => {
                       </TableHeader>
                       <TableBody>
                         {searchResults.map((offender) => (
-                          <TableRow key={offender.id}>
+                          <TableRow 
+                            key={offender.id}
+                            ref={el => rowRefs.current[offender.id] = el}
+                            className={selectedOffenderId === offender.id 
+                              ? "bg-primary/10 transition-colors duration-500" 
+                              : "transition-colors duration-300"}
+                          >
                             <TableCell className="font-medium">{offender.name}</TableCell>
                             <TableCell>{offender.offenseType}</TableCell>
                             <TableCell>
