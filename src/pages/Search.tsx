@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import SearchBar from "@/components/SearchBar";
 import MapComponent from "@/components/Map";
 import { Offender } from "@/lib/types";
-import { supabase, transformOffenderFromDB } from "@/integrations/supabase/client";
+import { supabase, transformOffenderFromDB, insertDemoOffenders } from "@/integrations/supabase/client";
 import { 
   Table, 
   TableBody, 
@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Search as SearchIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import AuthModal from "@/components/AuthModal";
+import { useToast } from "@/components/ui/use-toast";
 
 const Search = () => {
   const [searchResults, setSearchResults] = useState<Offender[]>([]);
@@ -27,6 +28,7 @@ const Search = () => {
   const [dataAvailable, setDataAvailable] = useState(false);
   const [searchLocations, setSearchLocations] = useState<{coordinates: [number, number]; intensity: number; id?: string}[]>([]);
   const [selectedOffenderId, setSelectedOffenderId] = useState<string | null>(null);
+  const { toast } = useToast();
   
   // Create refs for table rows to scroll to
   const rowRefs = useRef<{[id: string]: HTMLTableRowElement | null}>({});
@@ -40,14 +42,32 @@ const Search = () => {
         
         if (error) throw error;
         
-        setDataAvailable(count !== null && count > 0);
+        const hasData = count !== null && count > 0;
+        setDataAvailable(hasData);
+        
+        // If we have fewer than 25 records, generate more demo data
+        if (count !== null && count < 25) {
+          const result = await insertDemoOffenders();
+          if (result.success) {
+            toast({
+              title: "Demo Data Added",
+              description: "Additional demo records have been added for demonstration purposes.",
+              duration: 5000,
+            });
+            // Reload the data count
+            const { count: newCount } = await supabase
+              .from('offenders')
+              .select('*', { count: 'exact', head: true });
+            setDataAvailable(newCount !== null && newCount > 0);
+          }
+        }
       } catch (error) {
         console.error("Error checking data availability:", error);
       }
     };
     
     checkDataAvailability();
-  }, []);
+  }, [toast]);
 
   const handleSearch = async (query: string, filters: any) => {
     try {

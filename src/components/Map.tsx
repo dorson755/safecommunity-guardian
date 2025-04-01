@@ -36,7 +36,7 @@ const Map: React.FC<MapProps> = ({ heatmapData, zoomToResults = false, onPointCl
       };
     }
 
-    // Default demo data if no data provided
+    // Default demo data if no data provided - now with at least 25 points
     const features: GeoJSON.Feature<GeoJSON.Point>[] = [];
 
     // Helper to create clusters
@@ -63,9 +63,11 @@ const Map: React.FC<MapProps> = ({ heatmapData, zoomToResults = false, onPointCl
     return {
       type: "FeatureCollection" as const,
       features: [
-        ...createCluster([-77.3754, 25.0443], 15, 0.02), // Dense cluster
+        ...createCluster([-77.3754, 25.0443], 12, 0.02), // Dense cluster
         ...createCluster([-77.42, 25.08], 8, 0.03),     // Medium cluster
-        ...createCluster([-77.34, 25.01], 3, 0.05),     // Sparse cluster
+        ...createCluster([-77.34, 25.01], 8, 0.05),     // Medium cluster
+        ...createCluster([-77.38, 25.06], 5, 0.03),     // Smaller cluster
+        ...createCluster([-77.32, 25.05], 5, 0.02),     // Smaller cluster
       ],
     };
   };

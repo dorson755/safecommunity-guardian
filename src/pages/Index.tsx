@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import SearchBar from "@/components/SearchBar";
@@ -178,13 +179,15 @@ const Index = () => {
             </p>
           </div>
           
-          <MapComponent />
+          <div className="h-[500px] rounded-lg overflow-hidden shadow-lg border">
+            <MapComponent />
+          </div>
           
           {!dataAvailable && (
             <div className="flex justify-center mt-6 text-center">
               <p className="text-sm text-muted-foreground">
                 <AlertTriangle className="inline-block mr-1 h-4 w-4" />
-                No data available. Please sign in to access the offender registry data.
+                Using demo data. Sign in to access the actual offender registry data.
               </p>
             </div>
           )}
