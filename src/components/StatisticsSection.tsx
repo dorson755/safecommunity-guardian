@@ -15,6 +15,20 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ChevronDown } from "lucide-react";
 
 const COLORS = ['#9b87f5', '#7E69AB', '#6E59A5', '#D6BCFA', '#5b21b6', '#9333ea', '#c084fc', '#a855f7'];
 
@@ -136,7 +150,12 @@ const OffenseTimelineChart = ({
   setTimeRange, 
   selectedOffenseTypes, 
   setSelectedOffenseTypes,
-  offenseTypes
+  offenseTypes,
+  selectedYear,
+  setSelectedYear,
+  selectedMonth,
+  setSelectedMonth,
+  fetchStatistics
 }: {
   data: OffenseTimelineData[] | null;
   loading: boolean;
@@ -145,8 +164,33 @@ const OffenseTimelineChart = ({
   selectedOffenseTypes: string[];
   setSelectedOffenseTypes: (types: string[]) => void;
   offenseTypes: string[];
+  selectedYear: number;
+  setSelectedYear: (year: number) => void;
+  selectedMonth: number;
+  setSelectedMonth: (month: number) => void;
+  fetchStatistics: () => Promise<void>;
 }) => {
   const [activeChart, setActiveChart] = useState<string>(selectedOffenseTypes[0] || (offenseTypes.length > 0 ? offenseTypes[0] : ""));
+
+  // Generate years array for selector (last 40 years)
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 41 }, (_, i) => currentYear - i);
+  
+  // Month names
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June", 
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const handleYearChange = (year: string) => {
+    setSelectedYear(parseInt(year));
+    fetchStatistics();
+  };
+
+  const handleMonthChange = (month: string) => {
+    setSelectedMonth(parseInt(month));
+    fetchStatistics();
+  };
 
   if (loading) {
     return (
@@ -187,14 +231,88 @@ const OffenseTimelineChart = ({
   return (
     <div className="h-full flex flex-col">
       <div className="flex flex-col gap-2 mb-4">
-        <Tabs value={timeRange} onValueChange={setTimeRange} className="w-full">
-          <TabsList className="grid grid-cols-4 mb-4">
-            <TabsTrigger value="month">Month</TabsTrigger>
-            <TabsTrigger value="year">Year</TabsTrigger>
-            <TabsTrigger value="5years">5 Years</TabsTrigger>
-            <TabsTrigger value="all">All Time</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+          <Tabs value={timeRange} onValueChange={setTimeRange} className="w-full">
+            <TabsList className="grid grid-cols-4 mb-4">
+              <TabsTrigger value="month">Month</TabsTrigger>
+              <TabsTrigger value="year">Year</TabsTrigger>
+              <TabsTrigger value="5years">5 Years</TabsTrigger>
+              <TabsTrigger value="all">All Time</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {/* Time period selectors */}
+          {timeRange === 'year' && (
+            <div className="mb-4 w-full sm:w-auto">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full sm:w-[120px] flex justify-between">
+                    {selectedYear}
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0" align="end">
+                  <ScrollArea className="h-72">
+                    <div className="p-1">
+                      {years.map((year) => (
+                        <Button
+                          key={year}
+                          variant="ghost"
+                          className={`w-full justify-start ${year === selectedYear ? 'bg-muted' : ''}`}
+                          onClick={() => handleYearChange(year.toString())}
+                        >
+                          {year}
+                        </Button>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          {timeRange === 'month' && (
+            <div className="flex flex-col sm:flex-row gap-2 mb-4 w-full sm:w-auto">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full sm:w-[120px] flex justify-between">
+                    {selectedYear}
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0" align="end">
+                  <ScrollArea className="h-72">
+                    <div className="p-1">
+                      {years.map((year) => (
+                        <Button
+                          key={year}
+                          variant="ghost"
+                          className={`w-full justify-start ${year === selectedYear ? 'bg-muted' : ''}`}
+                          onClick={() => handleYearChange(year.toString())}
+                        >
+                          {year}
+                        </Button>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
+
+              <Select value={selectedMonth.toString()} onValueChange={handleMonthChange}>
+                <SelectTrigger className="w-full sm:w-[140px]">
+                  <SelectValue placeholder="Select month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {monthNames.map((month, index) => (
+                    <SelectItem key={index} value={index.toString()}>
+                      {month}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
         
         {/* Type selection buttons */}
         <div className="flex flex-wrap gap-2 mb-4 border-b pb-4">
@@ -307,6 +425,8 @@ const StatisticsSection = () => {
   const [timeRange, setTimeRange] = useState<string>("year");
   const [selectedOffenseTypes, setSelectedOffenseTypes] = useState<string[]>([]);
   const [allOffenseTypes, setAllOffenseTypes] = useState<string[]>([]);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   
   const fetchStatistics = async () => {
     try {
@@ -404,23 +524,20 @@ const StatisticsSection = () => {
         
         switch (range) {
           case 'month':
-            // Format as YYYY-MM-DD for the current month
-            const now = new Date();
-            const oneMonthAgo = new Date();
-            oneMonthAgo.setMonth(now.getMonth() - 1);
-            if (date < oneMonthAgo) {
+            // For month view, check if the date matches selected year and month
+            if (date.getFullYear() !== selectedYear || date.getMonth() !== selectedMonth) {
               return '';
             }
+            // Format as YYYY-MM-DD
             return dateStr.split('T')[0]; // YYYY-MM-DD
             
           case 'year':
-            // Format as YYYY-MM for the current year
-            const thisYear = new Date().getFullYear();
-            const year = date.getFullYear();
-            if (year !== thisYear) {
+            // For year view, check if the date is in the selected year
+            if (date.getFullYear() !== selectedYear) {
               return '';
             }
-            return `${year}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+            // Format as YYYY-MM
+            return `${selectedYear}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
             
           case '5years':
             // Format as YYYY-Q for the last 5 years
@@ -441,32 +558,29 @@ const StatisticsSection = () => {
       // Create default timeline entries for all time periods
       const generateDefaultTimelineDates = (range: string): string[] => {
         const dates: string[] = [];
-        const now = new Date();
         
         switch (range) {
           case 'month':
-            // Generate all days in current month
-            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
+            // Generate all days in selected month
+            const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
             
             for (let day = 1; day <= daysInMonth; day++) {
-              const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+              const dateStr = `${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
               dates.push(dateStr);
             }
             break;
             
           case 'year':
-            // Generate all months in current year
-            const year = now.getFullYear();
+            // Generate all months in selected year
             for (let month = 0; month < 12; month++) {
-              const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}`;
+              const dateStr = `${selectedYear}-${(month + 1).toString().padStart(2, '0')}`;
               dates.push(dateStr);
             }
             break;
             
           case '5years':
             // Generate quarters for the last 5 years
+            const now = new Date();
             const currentQuarter = Math.floor(now.getMonth() / 3) + 1;
             for (let yearOffset = 5; yearOffset >= 0; yearOffset--) {
               const year = now.getFullYear() - yearOffset;
@@ -479,8 +593,9 @@ const StatisticsSection = () => {
             
           case 'all':
             // Generate last 40 years
-            const startYear = now.getFullYear() - 39;
-            for (let year = startYear; year <= now.getFullYear(); year++) {
+            const endYear = new Date().getFullYear();
+            const startYear = endYear - 39;
+            for (let year = startYear; year <= endYear; year++) {
               dates.push(`${year}`);
             }
             break;
@@ -556,10 +671,10 @@ const StatisticsSection = () => {
     fetchStatistics();
   }, []);
   
-  // Refetch timeline data when time range changes
+  // Refetch timeline data when time range, selected year, or selected month changes
   useEffect(() => {
     fetchStatistics();
-  }, [timeRange]);
+  }, [timeRange, selectedYear, selectedMonth]);
 
   return (
     <section className="py-12 md:py-20">
@@ -651,6 +766,11 @@ const StatisticsSection = () => {
                   selectedOffenseTypes={selectedOffenseTypes}
                   setSelectedOffenseTypes={setSelectedOffenseTypes}
                   offenseTypes={allOffenseTypes}
+                  selectedYear={selectedYear}
+                  setSelectedYear={setSelectedYear}
+                  selectedMonth={selectedMonth}
+                  setSelectedMonth={setSelectedMonth}
+                  fetchStatistics={fetchStatistics}
                 />
               </ChartContainer>
             </CardContent>
