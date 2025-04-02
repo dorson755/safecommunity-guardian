@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -174,26 +173,6 @@ const OffenseTimelineChart = ({
 }) => {
   const [activeChart, setActiveChart] = useState<string>(selectedOffenseTypes[0] || (offenseTypes.length > 0 ? offenseTypes[0] : ""));
 
-  // Generate years array for selector (last 40 years)
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 41 }, (_, i) => currentYear - i);
-  
-  // Month names
-  const monthNames = [
-    "January", "February", "March", "April", "May", "June", 
-    "July", "August", "September", "October", "November", "December"
-  ];
-
-  const handleYearChange = (year: string) => {
-    setSelectedYear(parseInt(year));
-    fetchStatistics();
-  };
-
-  const handleMonthChange = (month: string) => {
-    setSelectedMonth(parseInt(month));
-    fetchStatistics();
-  };
-
   if (loading) {
     return (
       <div className="h-full w-full flex items-center justify-center">
@@ -210,7 +189,6 @@ const OffenseTimelineChart = ({
     );
   }
 
-  // Calculate totals for each offense type
   const totals: Record<string, number> = {};
   offenseTypes.forEach(type => {
     totals[type] = data.reduce((acc, item) => acc + (Number(item[type]) || 0), 0);
@@ -234,7 +212,6 @@ const OffenseTimelineChart = ({
     <div className="h-full flex flex-col">
       <div className="flex flex-col gap-2 mb-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-          {/* Time period selectors */}
           {timeRange === 'year' && (
             <div className="mb-4 w-full sm:w-auto">
               <Popover>
@@ -307,7 +284,6 @@ const OffenseTimelineChart = ({
           )}
         </div>
         
-        {/* Type selection buttons */}
         <div className="flex flex-wrap gap-2 mb-4 border-b pb-4">
           {offenseTypes.map((type, index) => (
             <button
@@ -421,18 +397,34 @@ const StatisticsSection = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 41 }, (_, i) => currentYear - i);
+  
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June", 
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const handleYearChange = (year: string) => {
+    setSelectedYear(parseInt(year));
+    setTimeout(() => fetchStatistics(), 0);
+  };
+
+  const handleMonthChange = (month: string) => {
+    setSelectedMonth(parseInt(month));
+    setTimeout(() => fetchStatistics(), 0);
+  };
+  
   const fetchStatistics = async () => {
     try {
       setLoading(true);
       
-      // Get total count
       const { count: totalCount, error: totalError } = await supabase
         .from('offenders')
         .select('*', { count: 'exact', head: true });
       
       if (totalError) throw totalError;
       
-      // Get high risk count (we'll define high risk as offense_type containing 'assault' or 'child')
       const { data: highRiskData, error: highRiskError } = await supabase
         .from('offenders')
         .select('*')
@@ -440,7 +432,6 @@ const StatisticsSection = () => {
       
       if (highRiskError) throw highRiskError;
       
-      // Get active cases count
       const { data: activeData, error: activeError } = await supabase
         .from('offenders')
         .select('*')
@@ -448,17 +439,14 @@ const StatisticsSection = () => {
       
       if (activeError) throw activeError;
       
-      // Get offense type distribution
       let offenseQuery = supabase.from('offenders').select('offense_type, conviction_date');
       
-      // Apply time range filter to offense type distribution
       offenseQuery = applyTimeRangeFilter(offenseQuery, timeRange, selectedYear, selectedMonth);
 
       const { data: offenseData, error: offenseError } = await offenseQuery;
       
       if (offenseError) throw offenseError;
       
-      // Process offense type data
       const offenseMap: Record<string, number> = {};
       offenseData?.forEach(item => {
         if (!item.offense_type) return;
@@ -471,27 +459,22 @@ const StatisticsSection = () => {
         count
       })).sort((a, b) => b.count - a.count);
       
-      // Extract all unique offense types
       const offenseTypes = Object.keys(offenseMap);
       setAllOffenseTypes(offenseTypes);
       
-      // If no offense type is selected, select the most common one
       if (selectedOffenseTypes.length === 0 && offenseTypes.length > 0) {
         const mostCommonType = processedOffenseData.length > 0 ? processedOffenseData[0].name : offenseTypes[0];
         setSelectedOffenseTypes([mostCommonType]);
       }
       
-      // Get status distribution
       let statusQuery = supabase.from('offenders').select('registration_status, conviction_date');
       
-      // Apply time range filter to status distribution
       statusQuery = applyTimeRangeFilter(statusQuery, timeRange, selectedYear, selectedMonth);
       
       const { data: statusData, error: statusError } = await statusQuery;
       
       if (statusError) throw statusError;
       
-      // Process status data
       const statusMap: Record<string, number> = {};
       statusData?.forEach(item => {
         if (!item.registration_status) return;
@@ -504,42 +487,34 @@ const StatisticsSection = () => {
         count
       }));
       
-      // Get timeline data based on conviction_date
       const { data: convictionData, error: convictionError } = await supabase
         .from('offenders')
         .select('conviction_date, offense_type');
       
       if (convictionError) throw convictionError;
       
-      // Process timeline data
       const timelineMap = new Map<string, Record<string, number>>();
       
-      // Helper function to get date key based on time range
       const getDateKey = (dateStr: string | null, range: string): string => {
         if (!dateStr) return '';
         
         const date = new Date(dateStr);
-        if (isNaN(date.getTime())) return ''; // Invalid date
+        if (isNaN(date.getTime())) return '';
         
         switch (range) {
           case 'month':
-            // For month view, check if the date matches selected year and month
             if (date.getFullYear() !== selectedYear || date.getMonth() !== selectedMonth) {
               return '';
             }
-            // Format as YYYY-MM-DD
-            return dateStr.split('T')[0]; // YYYY-MM-DD
+            return dateStr.split('T')[0];
             
           case 'year':
-            // For year view, check if the date is in the selected year
             if (date.getFullYear() !== selectedYear) {
               return '';
             }
-            // Format as YYYY-MM
             return `${selectedYear}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
             
           case '5years':
-            // Format as YYYY-Q for the last 5 years
             const fiveYearsAgo = new Date();
             fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
             if (date < fiveYearsAgo) {
@@ -549,18 +524,15 @@ const StatisticsSection = () => {
             
           case 'all':
           default:
-            // Format as YYYY for all time
             return `${date.getFullYear()}`;
         }
       };
       
-      // Create default timeline entries for all time periods
       const generateDefaultTimelineDates = (range: string): string[] => {
         const dates: string[] = [];
         
         switch (range) {
           case 'month':
-            // Generate all days in selected month
             const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
             
             for (let day = 1; day <= daysInMonth; day++) {
@@ -570,7 +542,6 @@ const StatisticsSection = () => {
             break;
             
           case 'year':
-            // Generate all months in selected year
             for (let month = 0; month < 12; month++) {
               const dateStr = `${selectedYear}-${(month + 1).toString().padStart(2, '0')}`;
               dates.push(dateStr);
@@ -578,7 +549,6 @@ const StatisticsSection = () => {
             break;
             
           case '5years':
-            // Generate quarters for the last 5 years
             const now = new Date();
             const currentQuarter = Math.floor(now.getMonth() / 3) + 1;
             for (let yearOffset = 5; yearOffset >= 0; yearOffset--) {
@@ -591,7 +561,6 @@ const StatisticsSection = () => {
             break;
             
           case 'all':
-            // Generate last 40 years
             const endYear = new Date().getFullYear();
             const startYear = endYear - 39;
             for (let year = startYear; year <= endYear; year++) {
@@ -603,7 +572,6 @@ const StatisticsSection = () => {
         return dates;
       };
       
-      // Setup default timeline with zero values for all offense types
       const defaultDates = generateDefaultTimelineDates(timeRange);
       defaultDates.forEach(dateKey => {
         const entry: Record<string, number> = {};
@@ -613,13 +581,12 @@ const StatisticsSection = () => {
         timelineMap.set(dateKey, entry);
       });
       
-      // Now add the actual data
       if (convictionData) {
         convictionData.forEach(item => {
           if (!item.conviction_date || !item.offense_type) return;
           
           const dateKey = getDateKey(item.conviction_date, timeRange);
-          if (!dateKey) return; // Skip if outside of the time range
+          if (!dateKey) return;
           
           if (!timelineMap.has(dateKey)) {
             const entry: Record<string, number> = {};
@@ -635,23 +602,18 @@ const StatisticsSection = () => {
         });
       }
       
-      // Convert map to array and ensure all offense types are represented
       const processedTimelineData: OffenseTimelineData[] = Array.from(timelineMap.entries())
         .map(([date, typeCountMap]) => {
           const entry: OffenseTimelineData = { date };
           
-          // Initialize all offense types with 0
           offenseTypes.forEach(type => {
             entry[type] = typeCountMap[type] || 0;
           });
           
           return entry;
         })
-        .sort((a, b) => a.date.localeCompare(b.date)); // Sort by date
+        .sort((a, b) => a.date.localeCompare(b.date));
       
-      console.log('Timeline data:', processedTimelineData);
-      
-      // Update state with fetched data
       setTotalOffenders(totalCount || 0);
       setHighRiskCount(highRiskData?.length || 0);
       setActiveCount(activeData?.length || 0);
@@ -666,7 +628,6 @@ const StatisticsSection = () => {
     }
   };
 
-  // Helper function to apply time range filter to supabase query
   const applyTimeRangeFilter = (query: any, timeRange: string, selectedYear: number, selectedMonth: number) => {
     switch (timeRange) {
       case 'month':
@@ -694,7 +655,10 @@ const StatisticsSection = () => {
     fetchStatistics();
   }, []);
   
-  // Refetch timeline data when time range, selected year, or selected month changes
+  const showYearSelector = timeRange === 'year' || timeRange === 'month';
+  
+  const showMonthSelector = timeRange === 'month';
+
   useEffect(() => {
     fetchStatistics();
   }, [timeRange, selectedYear, selectedMonth]);
@@ -708,16 +672,61 @@ const StatisticsSection = () => {
             Current analytics and trends from our offender registry database.
           </p>
           
-          {/* Time period selector placed under section title */}
           <div className="mb-8">
-            <Tabs value={timeRange} onValueChange={setTimeRange} className="w-full">
-              <TabsList className="grid grid-cols-4 mb-4">
-                <TabsTrigger value="month">Month</TabsTrigger>
-                <TabsTrigger value="year">Year</TabsTrigger>
-                <TabsTrigger value="5years">5 Years</TabsTrigger>
-                <TabsTrigger value="all">All Time</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <div className="flex flex-col md:flex-row gap-4 items-start">
+              <Tabs value={timeRange} onValueChange={setTimeRange} className="w-full md:w-auto">
+                <TabsList className="grid grid-cols-4">
+                  <TabsTrigger value="month">Month</TabsTrigger>
+                  <TabsTrigger value="year">Year</TabsTrigger>
+                  <TabsTrigger value="5years">5 Years</TabsTrigger>
+                  <TabsTrigger value="all">All Time</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              
+              <div className="flex gap-2 flex-wrap">
+                {showYearSelector && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-[100px] flex justify-between">
+                        {selectedYear}
+                        <ChevronDown className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0" align="end">
+                      <ScrollArea className="h-72">
+                        <div className="p-1">
+                          {years.map((year) => (
+                            <Button
+                              key={year}
+                              variant="ghost"
+                              className={`w-full justify-start ${year === selectedYear ? 'bg-muted' : ''}`}
+                              onClick={() => handleYearChange(year.toString())}
+                            >
+                              {year}
+                            </Button>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </PopoverContent>
+                  </Popover>
+                )}
+                
+                {showMonthSelector && (
+                  <Select value={selectedMonth.toString()} onValueChange={handleMonthChange}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="Select month" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {monthNames.map((month, index) => (
+                        <SelectItem key={index} value={index.toString()}>
+                          {month}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </div>
           </div>
         </div>
         
