@@ -8,9 +8,13 @@ import {
   LineChart, Line, CartesianGrid
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import ChartContainer from "./ChartContainer";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 
 const COLORS = ['#9b87f5', '#7E69AB', '#6E59A5', '#D6BCFA', '#5b21b6', '#9333ea', '#c084fc', '#a855f7'];
 
@@ -211,7 +215,7 @@ const OffenseTimelineChart = ({
                 {type}
               </span>
               <span className="text-lg font-bold leading-none">
-                {totals[type].toLocaleString()}
+                {totals[type] ? totals[type].toLocaleString() : "0"}
               </span>
             </button>
           ))}
@@ -263,14 +267,14 @@ const OffenseTimelineChart = ({
               tickFormatter={formatDate}
               minTickGap={20}
             />
-            <YAxis />
-            <Tooltip
-              labelFormatter={(value) => {
-                return formatDate(value);
-              }}
-              formatter={(value, name) => [value, name]}
+            <YAxis allowDecimals={false} />
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  labelFormatter={(value) => formatDate(value)}
+                />
+              }
             />
-            <Legend />
             {offenseTypes.map((type, index) => (
               (selectedOffenseTypes.length === 0 || selectedOffenseTypes.includes(type)) && (
                 <Line 
@@ -340,7 +344,8 @@ const StatisticsSection = () => {
       
       // Process offense type data
       const offenseMap: Record<string, number> = {};
-      offenseData.forEach(item => {
+      offenseData?.forEach(item => {
+        if (!item.offense_type) return;
         const type = item.offense_type;
         offenseMap[type] = (offenseMap[type] || 0) + 1;
       });
@@ -356,7 +361,7 @@ const StatisticsSection = () => {
       
       // If no offense type is selected, select the most common one
       if (selectedOffenseTypes.length === 0 && offenseTypes.length > 0) {
-        const mostCommonType = processedOffenseData[0].name;
+        const mostCommonType = processedOffenseData.length > 0 ? processedOffenseData[0].name : offenseTypes[0];
         setSelectedOffenseTypes([mostCommonType]);
       }
       
@@ -369,7 +374,8 @@ const StatisticsSection = () => {
       
       // Process status data
       const statusMap: Record<string, number> = {};
-      statusData.forEach(item => {
+      statusData?.forEach(item => {
+        if (!item.registration_status) return;
         const status = item.registration_status;
         statusMap[status] = (statusMap[status] || 0) + 1;
       });
@@ -390,10 +396,11 @@ const StatisticsSection = () => {
       const timelineMap = new Map<string, Record<string, number>>();
       
       // Helper function to get date key based on time range
-      const getDateKey = (dateStr: string, range: string): string => {
+      const getDateKey = (dateStr: string | null, range: string): string => {
         if (!dateStr) return '';
         
         const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return ''; // Invalid date
         
         switch (range) {
           case 'month':
@@ -430,22 +437,89 @@ const StatisticsSection = () => {
             return `${date.getFullYear()}`;
         }
       };
-
-      // Convert to processed timeline data format suitable for the chart
-      convictionData.forEach(item => {
-        if (!item.conviction_date) return;
+      
+      // Create default timeline entries for all time periods
+      const generateDefaultTimelineDates = (range: string): string[] => {
+        const dates: string[] = [];
+        const now = new Date();
         
-        const dateKey = getDateKey(item.conviction_date, timeRange);
-        if (!dateKey) return; // Skip if outside of the time range
-        
-        if (!timelineMap.has(dateKey)) {
-          timelineMap.set(dateKey, {});
+        switch (range) {
+          case 'month':
+            // Generate all days in current month
+            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+              const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+              dates.push(dateStr);
+            }
+            break;
+            
+          case 'year':
+            // Generate all months in current year
+            const year = now.getFullYear();
+            for (let month = 0; month < 12; month++) {
+              const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}`;
+              dates.push(dateStr);
+            }
+            break;
+            
+          case '5years':
+            // Generate quarters for the last 5 years
+            const currentQuarter = Math.floor(now.getMonth() / 3) + 1;
+            for (let yearOffset = 5; yearOffset >= 0; yearOffset--) {
+              const year = now.getFullYear() - yearOffset;
+              const quarters = yearOffset === 0 ? currentQuarter : 4;
+              for (let quarter = 1; quarter <= quarters; quarter++) {
+                dates.push(`${year}-${quarter}`);
+              }
+            }
+            break;
+            
+          case 'all':
+            // Generate last 40 years
+            const startYear = now.getFullYear() - 39;
+            for (let year = startYear; year <= now.getFullYear(); year++) {
+              dates.push(`${year}`);
+            }
+            break;
         }
         
-        const offenseType = item.offense_type;
-        const currentData = timelineMap.get(dateKey)!;
-        currentData[offenseType] = (currentData[offenseType] || 0) + 1;
+        return dates;
+      };
+      
+      // Setup default timeline with zero values for all offense types
+      const defaultDates = generateDefaultTimelineDates(timeRange);
+      defaultDates.forEach(dateKey => {
+        const entry: Record<string, number> = {};
+        offenseTypes.forEach(type => {
+          entry[type] = 0;
+        });
+        timelineMap.set(dateKey, entry);
       });
+      
+      // Now add the actual data
+      if (convictionData) {
+        convictionData.forEach(item => {
+          if (!item.conviction_date || !item.offense_type) return;
+          
+          const dateKey = getDateKey(item.conviction_date, timeRange);
+          if (!dateKey) return; // Skip if outside of the time range
+          
+          if (!timelineMap.has(dateKey)) {
+            const entry: Record<string, number> = {};
+            offenseTypes.forEach(type => {
+              entry[type] = 0;
+            });
+            timelineMap.set(dateKey, entry);
+          }
+          
+          const offenseType = item.offense_type;
+          const currentData = timelineMap.get(dateKey)!;
+          currentData[offenseType] = (currentData[offenseType] || 0) + 1;
+        });
+      }
       
       // Convert map to array and ensure all offense types are represented
       const processedTimelineData: OffenseTimelineData[] = Array.from(timelineMap.entries())
@@ -460,6 +534,8 @@ const StatisticsSection = () => {
           return entry;
         })
         .sort((a, b) => a.date.localeCompare(b.date)); // Sort by date
+      
+      console.log('Timeline data:', processedTimelineData);
       
       // Update state with fetched data
       setTotalOffenders(totalCount || 0);
@@ -518,7 +594,7 @@ const StatisticsSection = () => {
           />
           <StatsCard 
             title="Compliance Rate" 
-            value={loading ? "—" : `${Math.round((activeCount / totalOffenders) * 100)}%`}
+            value={loading ? "—" : `${totalOffenders ? Math.round((activeCount / totalOffenders) * 100) : 0}%`}
             description="Reporting compliance"
             loading={loading}
             icon={<Badge variant="secondary">Compliance</Badge>}
@@ -531,9 +607,9 @@ const StatisticsSection = () => {
               <CardTitle>Offense Type Distribution</CardTitle>
             </CardHeader>
             <CardContent className="h-80">
-              <ChartContainer config={{ height: 300 }}>
+              <div className="h-full w-full">
                 <OffenseTypeChart data={offenseTypeData} loading={loading} />
-              </ChartContainer>
+              </div>
             </CardContent>
           </Card>
           
@@ -542,9 +618,9 @@ const StatisticsSection = () => {
               <CardTitle>Registration Status</CardTitle>
             </CardHeader>
             <CardContent className="h-80">
-              <ChartContainer config={{ height: 300 }}>
+              <div className="h-full w-full">
                 <StatusDistributionChart data={statusData} loading={loading} />
-              </ChartContainer>
+              </div>
             </CardContent>
           </Card>
           
@@ -553,7 +629,20 @@ const StatisticsSection = () => {
               <CardTitle>Offenses Over Time</CardTitle>
             </CardHeader>
             <CardContent className="h-96">
-              <ChartContainer config={{ height: 380 }}>
+              <ChartContainer 
+                config={{
+                  ...Object.fromEntries(
+                    (allOffenseTypes || []).map((type, i) => [
+                      type, 
+                      { 
+                        label: type,
+                        color: COLORS[i % COLORS.length]
+                      }
+                    ])
+                  )
+                }}
+                className="h-[380px] w-full"
+              >
                 <OffenseTimelineChart 
                   data={timelineData} 
                   loading={loading} 
