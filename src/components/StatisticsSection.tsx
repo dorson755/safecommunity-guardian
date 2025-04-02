@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -172,6 +173,27 @@ const OffenseTimelineChart = ({
   fetchStatistics: () => Promise<void>;
 }) => {
   const [activeChart, setActiveChart] = useState<string>(selectedOffenseTypes[0] || (offenseTypes.length > 0 ? offenseTypes[0] : ""));
+  
+  // Define monthNames here for use in this component
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June", 
+    "July", "August", "September", "October", "November", "December"
+  ];
+  
+  // Define years array for timeline
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 41 }, (_, i) => currentYear - i);
+  
+  // Define handlers for year and month changes
+  const handleYearChange = (year: string) => {
+    setSelectedYear(parseInt(year));
+    setTimeout(() => fetchStatistics(), 0);
+  };
+
+  const handleMonthChange = (month: string) => {
+    setSelectedMonth(parseInt(month));
+    setTimeout(() => fetchStatistics(), 0);
+  };
 
   if (loading) {
     return (
@@ -397,6 +419,7 @@ const StatisticsSection = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   
+  // Define monthNames and years arrays at this level as well for the main component
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 41 }, (_, i) => currentYear - i);
   
@@ -405,6 +428,7 @@ const StatisticsSection = () => {
     "July", "August", "September", "October", "November", "December"
   ];
 
+  // Define handlers for year and month changes at this level too
   const handleYearChange = (year: string) => {
     setSelectedYear(parseInt(year));
     setTimeout(() => fetchStatistics(), 0);
