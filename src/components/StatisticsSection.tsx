@@ -59,9 +59,10 @@ const StatsCard = ({ title, value, description, loading, icon }: {
   );
 };
 
-const OffenseTypeChart = ({ data, loading }: { 
+const OffenseTypeChart = ({ data, loading, timeRange }: { 
   data: any[] | null;
   loading: boolean;
+  timeRange: string;
 }) => {
   if (loading) {
     return (
@@ -104,9 +105,10 @@ const OffenseTypeChart = ({ data, loading }: {
   );
 };
 
-const StatusDistributionChart = ({ data, loading }: {
+const StatusDistributionChart = ({ data, loading, timeRange }: {
   data: any[] | null;
   loading: boolean;
+  timeRange: string;
 }) => {
   if (loading) {
     return (
@@ -232,15 +234,6 @@ const OffenseTimelineChart = ({
     <div className="h-full flex flex-col">
       <div className="flex flex-col gap-2 mb-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-          <Tabs value={timeRange} onValueChange={setTimeRange} className="w-full">
-            <TabsList className="grid grid-cols-4 mb-4">
-              <TabsTrigger value="month">Month</TabsTrigger>
-              <TabsTrigger value="year">Year</TabsTrigger>
-              <TabsTrigger value="5years">5 Years</TabsTrigger>
-              <TabsTrigger value="all">All Time</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
           {/* Time period selectors */}
           {timeRange === 'year' && (
             <div className="mb-4 w-full sm:w-auto">
@@ -422,7 +415,7 @@ const StatisticsSection = () => {
   const [offenseTypeData, setOffenseTypeData] = useState<any[] | null>(null);
   const [statusData, setStatusData] = useState<any[] | null>(null);
   const [timelineData, setTimelineData] = useState<OffenseTimelineData[] | null>(null);
-  const [timeRange, setTimeRange] = useState<string>("year");
+  const [timeRange, setTimeRange] = useState<string>("all");
   const [selectedOffenseTypes, setSelectedOffenseTypes] = useState<string[]>([]);
   const [allOffenseTypes, setAllOffenseTypes] = useState<string[]>([]);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -456,9 +449,12 @@ const StatisticsSection = () => {
       if (activeError) throw activeError;
       
       // Get offense type distribution
-      const { data: offenseData, error: offenseError } = await supabase
-        .from('offenders')
-        .select('offense_type');
+      let offenseQuery = supabase.from('offenders').select('offense_type, conviction_date');
+      
+      // Apply time range filter to offense type distribution
+      offenseQuery = applyTimeRangeFilter(offenseQuery, timeRange, selectedYear, selectedMonth);
+
+      const { data: offenseData, error: offenseError } = await offenseQuery;
       
       if (offenseError) throw offenseError;
       
@@ -486,9 +482,12 @@ const StatisticsSection = () => {
       }
       
       // Get status distribution
-      const { data: statusData, error: statusError } = await supabase
-        .from('offenders')
-        .select('registration_status');
+      let statusQuery = supabase.from('offenders').select('registration_status, conviction_date');
+      
+      // Apply time range filter to status distribution
+      statusQuery = applyTimeRangeFilter(statusQuery, timeRange, selectedYear, selectedMonth);
+      
+      const { data: statusData, error: statusError } = await statusQuery;
       
       if (statusError) throw statusError;
       
@@ -666,6 +665,30 @@ const StatisticsSection = () => {
       setLoading(false);
     }
   };
+
+  // Helper function to apply time range filter to supabase query
+  const applyTimeRangeFilter = (query: any, timeRange: string, selectedYear: number, selectedMonth: number) => {
+    switch (timeRange) {
+      case 'month':
+        const startOfMonth = new Date(selectedYear, selectedMonth, 1).toISOString();
+        const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59).toISOString();
+        return query.gte('conviction_date', startOfMonth).lte('conviction_date', endOfMonth);
+        
+      case 'year':
+        const startOfYear = new Date(selectedYear, 0, 1).toISOString();
+        const endOfYear = new Date(selectedYear, 11, 31, 23, 59, 59).toISOString();
+        return query.gte('conviction_date', startOfYear).lte('conviction_date', endOfYear);
+        
+      case '5years':
+        const fiveYearsAgo = new Date();
+        fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+        return query.gte('conviction_date', fiveYearsAgo.toISOString());
+        
+      case 'all':
+      default:
+        return query;
+    }
+  };
   
   useEffect(() => {
     fetchStatistics();
@@ -679,11 +702,23 @@ const StatisticsSection = () => {
   return (
     <section className="py-12 md:py-20">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="mb-10">
+        <div className="mb-6">
           <h2 className="text-3xl font-bold mb-4">Registry Statistics</h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mb-6">
             Current analytics and trends from our offender registry database.
           </p>
+          
+          {/* Time period selector placed under section title */}
+          <div className="mb-8">
+            <Tabs value={timeRange} onValueChange={setTimeRange} className="w-full">
+              <TabsList className="grid grid-cols-4 mb-4">
+                <TabsTrigger value="month">Month</TabsTrigger>
+                <TabsTrigger value="year">Year</TabsTrigger>
+                <TabsTrigger value="5years">5 Years</TabsTrigger>
+                <TabsTrigger value="all">All Time</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </div>
         
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
@@ -723,7 +758,7 @@ const StatisticsSection = () => {
             </CardHeader>
             <CardContent className="h-80">
               <div className="h-full w-full">
-                <OffenseTypeChart data={offenseTypeData} loading={loading} />
+                <OffenseTypeChart data={offenseTypeData} loading={loading} timeRange={timeRange} />
               </div>
             </CardContent>
           </Card>
@@ -734,7 +769,7 @@ const StatisticsSection = () => {
             </CardHeader>
             <CardContent className="h-80">
               <div className="h-full w-full">
-                <StatusDistributionChart data={statusData} loading={loading} />
+                <StatusDistributionChart data={statusData} loading={loading} timeRange={timeRange} />
               </div>
             </CardContent>
           </Card>
