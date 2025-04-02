@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronDown } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const COLORS = ['#9b87f5', '#7E69AB', '#6E59A5', '#D6BCFA', '#5b21b6', '#9333ea', '#c084fc', '#a855f7'];
 
@@ -64,6 +65,8 @@ const OffenseTypeChart = ({ data, loading, timeRange }: {
   loading: boolean;
   timeRange: string;
 }) => {
+  const isMobile = useIsMobile();
+  
   if (loading) {
     return (
       <div className="h-full w-full flex items-center justify-center">
@@ -88,18 +91,18 @@ const OffenseTypeChart = ({ data, loading, timeRange }: {
           cx="50%"
           cy="50%"
           labelLine={false}
-          outerRadius={80}
+          outerRadius={isMobile ? 60 : 80}
           fill="#8884d8"
           dataKey="count"
           nameKey="name"
-          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+          label={({ name, percent }) => isMobile ? `${(percent * 100).toFixed(0)}%` : `${name}: ${(percent * 100).toFixed(0)}%`}
         >
           {data.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
         <Tooltip />
-        <Legend />
+        <Legend layout={isMobile ? "horizontal" : "vertical"} verticalAlign={isMobile ? "bottom" : "middle"} align={isMobile ? "center" : "right"} />
       </PieChart>
     </ResponsiveContainer>
   );
@@ -110,6 +113,8 @@ const StatusDistributionChart = ({ data, loading, timeRange }: {
   loading: boolean;
   timeRange: string;
 }) => {
+  const isMobile = useIsMobile();
+  
   if (loading) {
     return (
       <div className="h-full w-full flex items-center justify-center">
@@ -131,7 +136,7 @@ const StatusDistributionChart = ({ data, loading, timeRange }: {
       <BarChart data={data} layout="vertical">
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis type="number" />
-        <YAxis dataKey="name" type="category" width={100} />
+        <YAxis dataKey="name" type="category" width={isMobile ? 70 : 100} />
         <Tooltip />
         <Legend />
         <Bar dataKey="count" fill={COLORS[0]} name="Offenders" />
@@ -173,6 +178,7 @@ const OffenseTimelineChart = ({
   fetchStatistics: () => Promise<void>;
 }) => {
   const [activeChart, setActiveChart] = useState<string>(selectedOffenseTypes[0] || (offenseTypes.length > 0 ? offenseTypes[0] : ""));
+  const isMobile = useIsMobile();
   
   // Define monthNames here for use in this component
   const monthNames = [
@@ -233,85 +239,12 @@ const OffenseTimelineChart = ({
   return (
     <div className="h-full flex flex-col">
       <div className="flex flex-col gap-2 mb-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-          {timeRange === 'year' && (
-            <div className="mb-4 w-full sm:w-auto">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full sm:w-[120px] flex justify-between">
-                    {selectedYear}
-                    <ChevronDown className="h-4 w-4 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0" align="end">
-                  <ScrollArea className="h-72">
-                    <div className="p-1">
-                      {years.map((year) => (
-                        <Button
-                          key={year}
-                          variant="ghost"
-                          className={`w-full justify-start ${year === selectedYear ? 'bg-muted' : ''}`}
-                          onClick={() => handleYearChange(year.toString())}
-                        >
-                          {year}
-                        </Button>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </PopoverContent>
-              </Popover>
-            </div>
-          )}
-
-          {timeRange === 'month' && (
-            <div className="flex flex-col sm:flex-row gap-2 mb-4 w-full sm:w-auto">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full sm:w-[120px] flex justify-between">
-                    {selectedYear}
-                    <ChevronDown className="h-4 w-4 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0" align="end">
-                  <ScrollArea className="h-72">
-                    <div className="p-1">
-                      {years.map((year) => (
-                        <Button
-                          key={year}
-                          variant="ghost"
-                          className={`w-full justify-start ${year === selectedYear ? 'bg-muted' : ''}`}
-                          onClick={() => handleYearChange(year.toString())}
-                        >
-                          {year}
-                        </Button>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </PopoverContent>
-              </Popover>
-
-              <Select value={selectedMonth.toString()} onValueChange={handleMonthChange}>
-                <SelectTrigger className="w-full sm:w-[140px]">
-                  <SelectValue placeholder="Select month" />
-                </SelectTrigger>
-                <SelectContent>
-                  {monthNames.map((month, index) => (
-                    <SelectItem key={index} value={index.toString()}>
-                      {month}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-        </div>
-        
         <div className="flex flex-wrap gap-2 mb-4 border-b pb-4">
           {offenseTypes.map((type, index) => (
             <button
               key={type}
               data-active={activeChart === type}
-              className={`flex flex-1 flex-col justify-center gap-1 px-4 py-2 text-left rounded-md border 
+              className={`flex flex-1 flex-col justify-center gap-1 px-3 py-2 text-left rounded-md border 
                 ${activeChart === type ? 'bg-muted/50 border-primary' : 'hover:bg-muted/20'}`}
               onClick={() => {
                 setActiveChart(type);
@@ -368,15 +301,25 @@ const OffenseTimelineChart = ({
         <ResponsiveContainer width="100%" height="100%">
           <LineChart 
             data={data}
-            margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+            margin={{ 
+              top: 5, 
+              right: isMobile ? 5 : 20, 
+              left: isMobile ? 0 : 10, 
+              bottom: 5 
+            }}
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
               dataKey="date" 
               tickFormatter={formatDate}
-              minTickGap={20}
+              minTickGap={isMobile ? 30 : 20}
+              tick={{ fontSize: isMobile ? 10 : 12 }}
             />
-            <YAxis allowDecimals={false} />
+            <YAxis 
+              allowDecimals={false} 
+              tick={{ fontSize: isMobile ? 10 : 12 }}
+              width={isMobile ? 25 : 40}
+            />
             <ChartTooltip
               content={
                 <ChartTooltipContent
@@ -393,8 +336,8 @@ const OffenseTimelineChart = ({
                   stroke={COLORS[index % COLORS.length]} 
                   name={type} 
                   strokeWidth={activeChart === type ? 3 : 2}
-                  dot={activeChart === type ? { r: 4 } : { r: 3 }}
-                  activeDot={{ r: 8 }}
+                  dot={activeChart === type ? { r: isMobile ? 3 : 4 } : { r: isMobile ? 2 : 3 }}
+                  activeDot={{ r: isMobile ? 6 : 8 }}
                 />
               )
             ))}
@@ -406,7 +349,8 @@ const OffenseTimelineChart = ({
 };
 
 const StatisticsSection = () => {
-  const [loading, setLoading] = useState(true);
+  const [overallLoading, setOverallLoading] = useState(true);
+  const [chartLoading, setChartLoading] = useState(true);
   const [totalOffenders, setTotalOffenders] = useState(0);
   const [highRiskCount, setHighRiskCount] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
@@ -418,6 +362,7 @@ const StatisticsSection = () => {
   const [allOffenseTypes, setAllOffenseTypes] = useState<string[]>([]);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const isMobile = useIsMobile();
   
   // Define monthNames and years arrays at this level as well for the main component
   const currentYear = new Date().getFullYear();
@@ -431,17 +376,18 @@ const StatisticsSection = () => {
   // Define handlers for year and month changes at this level too
   const handleYearChange = (year: string) => {
     setSelectedYear(parseInt(year));
-    setTimeout(() => fetchStatistics(), 0);
+    setTimeout(() => fetchChartStatistics(), 0);
   };
 
   const handleMonthChange = (month: string) => {
     setSelectedMonth(parseInt(month));
-    setTimeout(() => fetchStatistics(), 0);
+    setTimeout(() => fetchChartStatistics(), 0);
   };
   
-  const fetchStatistics = async () => {
+  // Fetch overall statistics (not affected by time range filters)
+  const fetchOverallStatistics = async () => {
     try {
-      setLoading(true);
+      setOverallLoading(true);
       
       const { count: totalCount, error: totalError } = await supabase
         .from('offenders')
@@ -462,6 +408,22 @@ const StatisticsSection = () => {
         .eq('registration_status', 'active');
       
       if (activeError) throw activeError;
+      
+      setTotalOffenders(totalCount || 0);
+      setHighRiskCount(highRiskData?.length || 0);
+      setActiveCount(activeData?.length || 0);
+      
+    } catch (error) {
+      console.error("Error fetching overall statistics:", error);
+    } finally {
+      setOverallLoading(false);
+    }
+  };
+  
+  // Fetch chart statistics (affected by time range filters)
+  const fetchChartStatistics = async () => {
+    try {
+      setChartLoading(true);
       
       let offenseQuery = supabase.from('offenders').select('offense_type, conviction_date');
       
@@ -638,17 +600,14 @@ const StatisticsSection = () => {
         })
         .sort((a, b) => a.date.localeCompare(b.date));
       
-      setTotalOffenders(totalCount || 0);
-      setHighRiskCount(highRiskData?.length || 0);
-      setActiveCount(activeData?.length || 0);
       setOffenseTypeData(processedOffenseData);
       setStatusData(processedStatusData);
       setTimelineData(processedTimelineData);
       
     } catch (error) {
-      console.error("Error fetching statistics:", error);
+      console.error("Error fetching chart statistics:", error);
     } finally {
-      setLoading(false);
+      setChartLoading(false);
     }
   };
 
@@ -676,7 +635,8 @@ const StatisticsSection = () => {
   };
   
   useEffect(() => {
-    fetchStatistics();
+    fetchOverallStatistics();
+    fetchChartStatistics();
   }, []);
   
   const showYearSelector = timeRange === 'year' || timeRange === 'month';
@@ -684,7 +644,7 @@ const StatisticsSection = () => {
   const showMonthSelector = timeRange === 'month';
 
   useEffect(() => {
-    fetchStatistics();
+    fetchChartStatistics();
   }, [timeRange, selectedYear, selectedMonth]);
 
   return (
@@ -699,7 +659,7 @@ const StatisticsSection = () => {
           <div className="mb-8">
             <div className="flex flex-col md:flex-row gap-4 items-start">
               <Tabs value={timeRange} onValueChange={setTimeRange} className="w-full md:w-auto">
-                <TabsList className="grid grid-cols-4">
+                <TabsList className="grid grid-cols-4 w-full">
                   <TabsTrigger value="month">Month</TabsTrigger>
                   <TabsTrigger value="year">Year</TabsTrigger>
                   <TabsTrigger value="5years">5 Years</TabsTrigger>
@@ -707,7 +667,7 @@ const StatisticsSection = () => {
                 </TabsList>
               </Tabs>
               
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex flex-wrap gap-2">
                 {showYearSelector && (
                   <Popover>
                     <PopoverTrigger asChild>
@@ -758,60 +718,60 @@ const StatisticsSection = () => {
           <StatsCard 
             title="Total Registered Offenders" 
             value={totalOffenders.toLocaleString()}
-            loading={loading}
+            loading={overallLoading}
             icon={<Badge>Total</Badge>}
           />
           <StatsCard 
             title="High Risk Offenders" 
             value={highRiskCount.toLocaleString()}
             description={`${totalOffenders ? Math.round((highRiskCount / totalOffenders) * 100) : 0}% of total registered`}
-            loading={loading}
+            loading={overallLoading}
             icon={<Badge variant="destructive">High Risk</Badge>}
           />
           <StatsCard 
             title="Active Cases" 
             value={activeCount.toLocaleString()}
             description="Currently active registrations"
-            loading={loading}
+            loading={overallLoading}
             icon={<Badge variant="outline">Active</Badge>}
           />
           <StatsCard 
             title="Compliance Rate" 
-            value={loading ? "—" : `${totalOffenders ? Math.round((activeCount / totalOffenders) * 100) : 0}%`}
+            value={overallLoading ? "—" : `${totalOffenders ? Math.round((activeCount / totalOffenders) * 100) : 0}%`}
             description="Reporting compliance"
-            loading={loading}
+            loading={overallLoading}
             icon={<Badge variant="secondary">Compliance</Badge>}
           />
         </div>
         
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-12">
-          <Card className="col-span-1">
+          <Card className={`col-span-1 ${isMobile ? 'h-[350px]' : ''}`}>
             <CardHeader>
               <CardTitle>Offense Type Distribution</CardTitle>
             </CardHeader>
-            <CardContent className="h-80">
+            <CardContent className={isMobile ? "h-[280px]" : "h-80"}>
               <div className="h-full w-full">
-                <OffenseTypeChart data={offenseTypeData} loading={loading} timeRange={timeRange} />
+                <OffenseTypeChart data={offenseTypeData} loading={chartLoading} timeRange={timeRange} />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="col-span-1">
+          <Card className={`col-span-1 ${isMobile ? 'h-[350px]' : ''}`}>
             <CardHeader>
               <CardTitle>Registration Status</CardTitle>
             </CardHeader>
-            <CardContent className="h-80">
+            <CardContent className={isMobile ? "h-[280px]" : "h-80"}>
               <div className="h-full w-full">
-                <StatusDistributionChart data={statusData} loading={loading} timeRange={timeRange} />
+                <StatusDistributionChart data={statusData} loading={chartLoading} timeRange={timeRange} />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="col-span-1 lg:col-span-1">
+          <Card className={`col-span-1 lg:col-span-1 ${isMobile ? 'h-[500px]' : ''}`}>
             <CardHeader>
               <CardTitle>Offenses Over Time</CardTitle>
             </CardHeader>
-            <CardContent className="h-96">
+            <CardContent className={isMobile ? "h-[420px]" : "h-96"}>
               <ChartContainer 
                 config={{
                   ...Object.fromEntries(
@@ -824,11 +784,11 @@ const StatisticsSection = () => {
                     ])
                   )
                 }}
-                className="h-[380px] w-full"
+                className={isMobile ? "h-[400px] w-full" : "h-[380px] w-full"}
               >
                 <OffenseTimelineChart 
                   data={timelineData} 
-                  loading={loading} 
+                  loading={chartLoading} 
                   timeRange={timeRange}
                   setTimeRange={setTimeRange}
                   selectedOffenseTypes={selectedOffenseTypes}
@@ -838,7 +798,7 @@ const StatisticsSection = () => {
                   setSelectedYear={setSelectedYear}
                   selectedMonth={selectedMonth}
                   setSelectedMonth={setSelectedMonth}
-                  fetchStatistics={fetchStatistics}
+                  fetchStatistics={fetchChartStatistics}
                 />
               </ChartContainer>
             </CardContent>
