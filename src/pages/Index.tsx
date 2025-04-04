@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/Navbar";
 import SearchBar from "@/components/SearchBar";
@@ -51,6 +50,7 @@ import {
   PaginationPrevious 
 } from "@/components/ui/pagination";
 import { useToast } from "@/components/ui/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const RESULTS_PER_PAGE = 15;
 
@@ -64,8 +64,8 @@ const Index = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const mapSectionRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
-  // Create refs for table rows to scroll to
   const rowRefs = useRef<{[id: string]: HTMLTableRowElement | null}>({});
   
   useEffect(() => {
@@ -80,7 +80,6 @@ const Index = () => {
         const hasData = count !== null && count > 0;
         setDataAvailable(hasData);
         
-        // If we have fewer than 25 records, generate more demo data
         if (count !== null && count < 25) {
           const result = await insertDemoOffenders();
           if (result.success) {
@@ -89,7 +88,6 @@ const Index = () => {
               description: "Additional demo records have been added for demonstration purposes.",
               duration: 5000,
             });
-            // Reload the data count
             const { count: newCount } = await supabase
               .from('offenders')
               .select('*', { count: 'exact', head: true });
@@ -129,9 +127,8 @@ const Index = () => {
       setSearchResults(results);
       setHasSearched(true);
       setSelectedOffenderId(null);
-      setCurrentPage(1); // Reset to first page after new search
+      setCurrentPage(1);
       
-      // Extract locations for the map
       const locations = results.map(offender => ({
         coordinates: [offender.longitude, offender.latitude] as [number, number],
         intensity: 1,
@@ -148,7 +145,6 @@ const Index = () => {
         console.error("Error logging search:", logError);
       }
       
-      // Scroll to map section after search completes
       setTimeout(() => {
         if (mapSectionRef.current) {
           mapSectionRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -165,13 +161,11 @@ const Index = () => {
   const handlePointClick = (id: string) => {
     setSelectedOffenderId(id);
     
-    // Find which page the offender is on
     const offenderIndex = searchResults.findIndex(o => o.id === id);
     if (offenderIndex >= 0) {
       const page = Math.floor(offenderIndex / RESULTS_PER_PAGE) + 1;
       setCurrentPage(page);
       
-      // Give time for the page to render then scroll to row
       setTimeout(() => {
         if (rowRefs.current[id]) {
           rowRefs.current[id]?.scrollIntoView({ 
@@ -196,7 +190,6 @@ const Index = () => {
     }
   };
   
-  // Pagination calculations
   const totalPages = Math.ceil(searchResults.length / RESULTS_PER_PAGE);
   const paginatedResults = searchResults.slice(
     (currentPage - 1) * RESULTS_PER_PAGE,
@@ -217,7 +210,6 @@ const Index = () => {
           
           {[...Array(totalPages)].map((_, i) => {
             const pageNumber = i + 1;
-            // Show first page, last page, and pages around current page
             if (
               pageNumber === 1 || 
               pageNumber === totalPages || 
@@ -256,7 +248,6 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      {/* Hero Section */}
       <section className="relative pt-28 pb-20 md:pt-36 md:pb-32 overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-blue-50 to-background"></div>
@@ -301,7 +292,6 @@ const Index = () => {
         </div>
       </section>
       
-      {/* Map Section */}
       <section id="map-section" ref={mapSectionRef} className="py-12 md:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
@@ -330,7 +320,6 @@ const Index = () => {
         </div>
       </section>
       
-      {/* Search Results Section */}
       {hasSearched && (
         <section className="py-12 md:py-20">
           <div className="max-w-7xl mx-auto px-6">
@@ -349,8 +338,8 @@ const Index = () => {
                       <TableRow>
                         <TableHead>Name</TableHead>
                         <TableHead>Offense Type</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Last Known Address</TableHead>
+                        {!isMobile && <TableHead>Status</TableHead>}
+                        {!isMobile && <TableHead>Last Known Address</TableHead>}
                         <TableHead>Details</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -365,15 +354,17 @@ const Index = () => {
                         >
                           <TableCell className="font-medium">{offender.name}</TableCell>
                           <TableCell>{offender.offenseType}</TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant="outline" 
-                              className={getStatusColor(offender.registrationStatus)}
-                            >
-                              {offender.registrationStatus.charAt(0).toUpperCase() + offender.registrationStatus.slice(1)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{offender.lastKnownAddress}</TableCell>
+                          {!isMobile && (
+                            <TableCell>
+                              <Badge 
+                                variant="outline" 
+                                className={getStatusColor(offender.registrationStatus)}
+                              >
+                                {offender.registrationStatus.charAt(0).toUpperCase() + offender.registrationStatus.slice(1)}
+                              </Badge>
+                            </TableCell>
+                          )}
+                          {!isMobile && <TableCell>{offender.lastKnownAddress}</TableCell>}
                           <TableCell>
                             <Button 
                               variant="ghost" 
@@ -408,10 +399,8 @@ const Index = () => {
         </section>
       )}
       
-      {/* Statistics Section */}
       <StatisticsSection />
       
-      {/* Features Section */}
       <section className="py-12 md:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
@@ -503,7 +492,6 @@ const Index = () => {
         </div>
       </section>
       
-      {/* CTA Section */}
       <section className="py-20 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-background"></div>
         <div className="max-w-5xl mx-auto px-6 text-center relative">
@@ -522,7 +510,6 @@ const Index = () => {
         </div>
       </section>
       
-      {/* Footer */}
       <Footer />
       
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />

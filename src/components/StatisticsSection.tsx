@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -85,7 +84,7 @@ const OffenseTypeChart = ({ data, loading, timeRange }: {
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <PieChart margin={{ top: 0, right: isMobile ? 0 : 30, bottom: isMobile ? 0 : 20, left: isMobile ? 0 : 30 }}>
+      <PieChart margin={{ top: 0, right: isMobile ? 0 : 20, bottom: isMobile ? 20 : 20, left: isMobile ? 0 : 20 }}>
         <Pie
           data={data}
           cx="50%"
@@ -102,10 +101,15 @@ const OffenseTypeChart = ({ data, loading, timeRange }: {
           ))}
         </Pie>
         <Legend 
-          layout={isMobile ? "horizontal" : "vertical"} 
-          verticalAlign={isMobile ? "bottom" : "middle"} 
-          align={isMobile ? "center" : "right"}
-          wrapperStyle={isMobile ? { fontSize: '10px', paddingTop: '10px' } : {}}
+          layout="horizontal"
+          verticalAlign="bottom" 
+          align="center"
+          wrapperStyle={{ 
+            width: '100%', 
+            paddingTop: '10px',
+            overflowWrap: 'break-word',
+            fontSize: isMobile ? '10px' : '12px'
+          }}
         />
         <Tooltip wrapperStyle={isMobile ? { fontSize: '10px' } : {}} />
       </PieChart>
@@ -164,7 +168,7 @@ const StatusDistributionChart = ({ data, loading, timeRange }: {
           align={isMobile ? "center" : "right"}
           wrapperStyle={isMobile ? { fontSize: '10px', paddingTop: '10px' } : {}}
         />
-        <Bar dataKey="count" fill={COLORS[0]} name="Offenders" />
+        <Bar dataKey="count" fill={COLORS[0]} name="Offenders" maxBarSize={isMobile ? 30 : 40} />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -205,17 +209,14 @@ const OffenseTimelineChart = ({
   const [activeChart, setActiveChart] = useState<string>(selectedOffenseTypes[0] || (offenseTypes.length > 0 ? offenseTypes[0] : ""));
   const isMobile = useIsMobile();
   
-  // Define monthNames for use in this component
   const monthNames = [
     "January", "February", "March", "April", "May", "June", 
     "July", "August", "September", "October", "November", "December"
   ];
   
-  // Define years array for timeline
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 41 }, (_, i) => currentYear - i);
   
-  // Define handlers for year and month changes
   const handleYearChange = (year: string) => {
     setSelectedYear(parseInt(year));
     setTimeout(() => fetchStatistics(), 0);
@@ -391,7 +392,6 @@ const StatisticsSection = () => {
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const isMobile = useIsMobile();
   
-  // Define monthNames and years arrays for the main component
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 41 }, (_, i) => currentYear - i);
   
@@ -400,7 +400,6 @@ const StatisticsSection = () => {
     "July", "August", "September", "October", "November", "December"
   ];
 
-  // Define handlers for year and month changes
   const handleYearChange = (year: string) => {
     setSelectedYear(parseInt(year));
     setTimeout(() => fetchChartStatistics(), 0);
@@ -411,9 +410,8 @@ const StatisticsSection = () => {
     setTimeout(() => fetchChartStatistics(), 0);
   };
   
-  // Fetch overall statistics (not affected by time range filters)
   const fetchOverallStatistics = async () => {
-    if (!overallLoading) return; // Only fetch once
+    if (!overallLoading) return;
     
     try {
       setOverallLoading(true);
@@ -449,7 +447,6 @@ const StatisticsSection = () => {
     }
   };
   
-  // Fetch chart statistics (affected by time range filters)
   const fetchChartStatistics = async () => {
     try {
       setChartLoading(true);
@@ -664,13 +661,11 @@ const StatisticsSection = () => {
   };
   
   useEffect(() => {
-    // Fetch the overall statistics once and chart statistics separately
     fetchOverallStatistics();
     fetchChartStatistics();
   }, []);
   
   useEffect(() => {
-    // Only refetch chart statistics when filters change
     fetchChartStatistics();
   }, [timeRange, selectedYear, selectedMonth]);
 
@@ -776,34 +771,36 @@ const StatisticsSection = () => {
           />
         </div>
         
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          <Card className={`col-span-1 ${isMobile ? 'h-[350px]' : ''}`}>
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-1 lg:grid-cols-2 mb-6">
+          <Card className={`col-span-1 ${isMobile ? 'h-[350px]' : 'h-[400px]'}`}>
             <CardHeader>
               <CardTitle>Offense Type Distribution</CardTitle>
             </CardHeader>
-            <CardContent className={`${isMobile ? 'h-[280px]' : 'h-80'}`}>
+            <CardContent className={`${isMobile ? 'h-[280px]' : 'h-[320px]'}`}>
               <div className="h-full w-full">
                 <OffenseTypeChart data={offenseTypeData} loading={chartLoading} timeRange={timeRange} />
               </div>
             </CardContent>
           </Card>
           
-          <Card className={`col-span-1 ${isMobile ? 'h-[350px]' : ''}`}>
+          <Card className={`col-span-1 ${isMobile ? 'h-[350px]' : 'h-[400px]'}`}>
             <CardHeader>
               <CardTitle>Registration Status</CardTitle>
             </CardHeader>
-            <CardContent className={`${isMobile ? 'h-[280px]' : 'h-80'}`}>
-              <div className="h-full w-full">
+            <CardContent className={`${isMobile ? 'h-[280px]' : 'h-[320px]'} px-1`}>
+              <div className="h-full w-full mx-[3px]">
                 <StatusDistributionChart data={statusData} loading={chartLoading} timeRange={timeRange} />
               </div>
             </CardContent>
           </Card>
+        </div>
           
-          <Card className="col-span-1 lg:col-span-1 md:col-span-2 h-auto">
+        <div className="grid grid-cols-1">
+          <Card className="col-span-1 h-auto">
             <CardHeader>
               <CardTitle>Offenses Over Time</CardTitle>
             </CardHeader>
-            <CardContent className={`${isMobile ? 'h-[400px]' : 'h-96'}`}>
+            <CardContent className={`${isMobile ? 'h-[400px]' : 'h-[500px]'}`}>
               <ChartContainer 
                 config={{
                   ...Object.fromEntries(
