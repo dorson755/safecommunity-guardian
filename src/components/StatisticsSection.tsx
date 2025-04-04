@@ -110,6 +110,12 @@ const OffenseTypeChart = ({ data, loading, timeRange }: {
             overflowWrap: 'break-word',
             fontSize: isMobile ? '10px' : '12px'
           }}
+          formatter={(value, entry, index) => {
+            if (isMobile && value.length > 10) {
+              return `${value.substring(0, 10)}...`;
+            }
+            return value;
+          }}
         />
         <Tooltip wrapperStyle={isMobile ? { fontSize: '10px' } : {}} />
       </PieChart>
@@ -166,7 +172,12 @@ const StatusDistributionChart = ({ data, loading, timeRange }: {
           layout={isMobile ? "horizontal" : "vertical"}
           verticalAlign={isMobile ? "bottom" : "middle"}
           align={isMobile ? "center" : "right"}
-          wrapperStyle={isMobile ? { fontSize: '10px', paddingTop: '10px' } : {}}
+          wrapperStyle={isMobile ? { 
+            fontSize: '10px', 
+            paddingTop: '10px',
+            width: '100%',
+            overflowWrap: 'break-word'
+          } : {}}
         />
         <Bar dataKey="count" fill={COLORS[0]} name="Offenders" maxBarSize={isMobile ? 30 : 40} />
       </BarChart>
@@ -772,22 +783,22 @@ const StatisticsSection = () => {
         </div>
         
         <div className="grid gap-6 grid-cols-1 md:grid-cols-1 lg:grid-cols-2 mb-6">
-          <Card className={`col-span-1 ${isMobile ? 'h-[350px]' : 'h-[400px]'}`}>
+          <Card className={`col-span-1 ${isMobile ? 'h-[350px]' : 'h-[400px]'} overflow-hidden`}>
             <CardHeader>
               <CardTitle>Offense Type Distribution</CardTitle>
             </CardHeader>
-            <CardContent className={`${isMobile ? 'h-[280px]' : 'h-[320px]'}`}>
+            <CardContent className={`${isMobile ? 'h-[280px]' : 'h-[320px]'} relative overflow-hidden`}>
               <div className="h-full w-full">
                 <OffenseTypeChart data={offenseTypeData} loading={chartLoading} timeRange={timeRange} />
               </div>
             </CardContent>
           </Card>
           
-          <Card className={`col-span-1 ${isMobile ? 'h-[350px]' : 'h-[400px]'}`}>
+          <Card className={`col-span-1 ${isMobile ? 'h-[350px]' : 'h-[400px]'} overflow-hidden`}>
             <CardHeader>
               <CardTitle>Registration Status</CardTitle>
             </CardHeader>
-            <CardContent className={`${isMobile ? 'h-[280px]' : 'h-[320px]'} px-1`}>
+            <CardContent className={`${isMobile ? 'h-[280px]' : 'h-[320px]'} px-1 relative overflow-hidden`}>
               <div className="h-full w-full mx-[3px]">
                 <StatusDistributionChart data={statusData} loading={chartLoading} timeRange={timeRange} />
               </div>
@@ -796,11 +807,11 @@ const StatisticsSection = () => {
         </div>
           
         <div className="grid grid-cols-1">
-          <Card className="col-span-1 h-auto">
+          <Card className="col-span-1 h-auto overflow-hidden">
             <CardHeader>
               <CardTitle>Offenses Over Time</CardTitle>
             </CardHeader>
-            <CardContent className={`${isMobile ? 'h-[400px]' : 'h-[500px]'}`}>
+            <CardContent className={`${isMobile ? 'h-[400px]' : 'h-[500px]'} relative overflow-hidden`}>
               <ChartContainer 
                 config={{
                   ...Object.fromEntries(
