@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -89,9 +88,9 @@ const OffenseTypeChart = ({ data, loading, timeRange }: {
         <Pie
           data={data}
           cx="50%"
-          cy={isMobile ? "40%" : "50%"}
+          cy="50%"
           labelLine={false}
-          outerRadius={isMobile ? 70 : 80}
+          outerRadius={isMobile ? 50 : 80}
           fill="#8884d8"
           dataKey="count"
           nameKey="name"
@@ -105,23 +104,20 @@ const OffenseTypeChart = ({ data, loading, timeRange }: {
           layout="horizontal"
           verticalAlign="bottom" 
           align="center"
-          iconSize={8}
-          iconType="square"
           wrapperStyle={{ 
             width: '100%', 
-            fontSize: '12px',
-            paddingTop: isMobile ? '15px' : '10px',
-            bottom: isMobile ? 0 : 10,
-            overflowWrap: 'break-word'
+            paddingTop: '10px',
+            overflowWrap: 'break-word',
+            fontSize: isMobile ? '10px' : '12px'
           }}
           formatter={(value, entry, index) => {
-            if (value.length > 15) {
-              return `${value.substring(0, 15)}...`;
+            if (isMobile && value.length > 10) {
+              return `${value.substring(0, 10)}...`;
             }
             return value;
           }}
         />
-        <Tooltip wrapperStyle={{ fontSize: '12px' }} />
+        <Tooltip wrapperStyle={isMobile ? { fontSize: '10px' } : {}} />
       </PieChart>
     </ResponsiveContainer>
   );
@@ -163,25 +159,25 @@ const StatusDistributionChart = ({ data, loading, timeRange }: {
         }}
       >
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis type="number" fontSize={12} />
+        <XAxis type="number" fontSize={isMobile ? 10 : 12} />
         <YAxis 
           dataKey="name" 
           type="category" 
           width={isMobile ? 50 : 80} 
-          fontSize={12}
+          fontSize={isMobile ? 10 : 12}
+          tick={{ fontSize: isMobile ? 10 : 12 }}
         />
-        <Tooltip wrapperStyle={{ fontSize: '12px' }} />
+        <Tooltip wrapperStyle={isMobile ? { fontSize: '10px' } : {}} />
         <Legend 
-          layout="horizontal"
-          verticalAlign="bottom"
-          align="center"
-          iconSize={8}
-          iconType="square"
-          wrapperStyle={{ 
-            fontSize: '12px', 
+          layout={isMobile ? "horizontal" : "vertical"}
+          verticalAlign={isMobile ? "bottom" : "middle"}
+          align={isMobile ? "center" : "right"}
+          wrapperStyle={isMobile ? { 
+            fontSize: '10px', 
             paddingTop: '10px',
-            width: '100%'
-          }}
+            width: '100%',
+            overflowWrap: 'break-word'
+          } : {}}
         />
         <Bar dataKey="count" fill={COLORS[0]} name="Offenders" maxBarSize={isMobile ? 30 : 40} />
       </BarChart>
@@ -788,10 +784,10 @@ const StatisticsSection = () => {
         
         <div className="grid gap-6 grid-cols-1 md:grid-cols-1 lg:grid-cols-2 mb-6">
           <Card className={`col-span-1 ${isMobile ? 'h-[350px]' : 'h-[400px]'} overflow-hidden`}>
-            <CardHeader className="pb-0">
+            <CardHeader>
               <CardTitle>Offense Type Distribution</CardTitle>
             </CardHeader>
-            <CardContent className={`${isMobile ? 'h-[300px]' : 'h-[320px]'} pt-0 relative overflow-hidden`}>
+            <CardContent className={`${isMobile ? 'h-[280px]' : 'h-[320px]'} relative overflow-hidden`}>
               <div className="h-full w-full">
                 <OffenseTypeChart data={offenseTypeData} loading={chartLoading} timeRange={timeRange} />
               </div>
@@ -799,10 +795,10 @@ const StatisticsSection = () => {
           </Card>
           
           <Card className={`col-span-1 ${isMobile ? 'h-[350px]' : 'h-[400px]'} overflow-hidden`}>
-            <CardHeader className="pb-0">
+            <CardHeader>
               <CardTitle>Registration Status</CardTitle>
             </CardHeader>
-            <CardContent className={`${isMobile ? 'h-[300px]' : 'h-[320px]'} px-1 pt-0 relative overflow-hidden`}>
+            <CardContent className={`${isMobile ? 'h-[280px]' : 'h-[320px]'} px-1 relative overflow-hidden`}>
               <div className="h-full w-full mx-[3px]">
                 <StatusDistributionChart data={statusData} loading={chartLoading} timeRange={timeRange} />
               </div>
