@@ -12,7 +12,6 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-  navigationMenuTriggerStyle
 } from "@/components/ui/navigation-menu";
 
 const Navbar = () => {
@@ -45,13 +44,13 @@ const Navbar = () => {
   return (
     <nav
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out px-6 py-4",
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out px-4 py-4 w-full",
         isScrolled
           ? "bg-white/80 backdrop-blur-md shadow-sm"
           : "bg-transparent"
       )}
     >
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <div className="max-w-7xl mx-auto flex items-center justify-between w-full">
         <div className="flex items-center space-x-2">
           <Link to="/" className="flex items-center space-x-2">
             <Shield className="w-8 h-8 text-primary" />
@@ -76,7 +75,7 @@ const Navbar = () => {
             </Button>
 
             {isMenuOpen && (
-              <div className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-md shadow-md p-4 flex flex-col space-y-2 animate-fade-in max-h-[80vh] overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-md shadow-md p-4 flex flex-col space-y-2 animate-fade-in max-h-[80vh] overflow-y-auto z-50">
                 <Button variant="ghost" className="justify-start" asChild>
                   <Link to="/search" onClick={() => setIsMenuOpen(false)}>
                     <Search className="mr-2 h-4 w-4" /> Search Registry

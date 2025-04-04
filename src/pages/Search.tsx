@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -147,12 +146,12 @@ const Search = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background w-full max-w-[100vw] overflow-x-hidden">
       <Navbar />
       
       {/* Main content */}
-      <main className="flex-grow pt-28 pb-16 w-full overflow-x-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full">
+      <main className="flex-grow pt-28 pb-16 w-full overflow-x-hidden px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto w-full">
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">Search Registry</h1>
             <p className="text-muted-foreground">
@@ -187,52 +186,55 @@ const Search = () => {
                 </p>
                 
                 {searchResults.length > 0 ? (
-                  <div className="overflow-hidden rounded-lg border shadow-sm animate-fade-in overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Offense Type</TableHead>
-                          {!isMobile && <TableHead>Status</TableHead>}
-                          {!isMobile && <TableHead>Last Known Address</TableHead>}
-                          <TableHead>Details</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {searchResults.map((offender) => (
-                          <TableRow 
-                            key={offender.id}
-                            ref={el => rowRefs.current[offender.id] = el}
-                            className={selectedOffenderId === offender.id 
-                              ? "bg-primary/10 transition-colors duration-500" 
-                              : "transition-colors duration-300"}
-                          >
-                            <TableCell className="font-medium">{offender.name}</TableCell>
-                            <TableCell>{offender.offenseType}</TableCell>
-                            {!isMobile && (
-                              <TableCell>
-                                <Badge 
-                                  variant="outline" 
-                                  className={getStatusColor(offender.registrationStatus)}
-                                >
-                                  {offender.registrationStatus.charAt(0).toUpperCase() + offender.registrationStatus.slice(1)}
-                                </Badge>
-                              </TableCell>
-                            )}
-                            {!isMobile && <TableCell>{offender.lastKnownAddress}</TableCell>}
-                            <TableCell>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => setIsAuthModalOpen(true)}
-                              >
-                                View <ArrowRight className="ml-1 h-3 w-3" />
-                              </Button>
-                            </TableCell>
+                  <div className="overflow-hidden rounded-lg border shadow-sm animate-fade-in overflow-x-auto w-full">
+                    <div className="w-full overflow-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Offense Type</TableHead>
+                            {!isMobile && <TableHead>Status</TableHead>}
+                            {!isMobile && <TableHead>Last Known Address</TableHead>}
+                            <TableHead className="w-24">Details</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {searchResults.map((offender) => (
+                            <TableRow 
+                              key={offender.id}
+                              ref={el => rowRefs.current[offender.id] = el}
+                              className={selectedOffenderId === offender.id 
+                                ? "bg-primary/10 transition-colors duration-500" 
+                                : "transition-colors duration-300"}
+                            >
+                              <TableCell className="font-medium break-words max-w-[120px]">{offender.name}</TableCell>
+                              <TableCell className="break-words max-w-[120px]">{offender.offenseType}</TableCell>
+                              {!isMobile && (
+                                <TableCell>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={getStatusColor(offender.registrationStatus)}
+                                  >
+                                    {offender.registrationStatus.charAt(0).toUpperCase() + offender.registrationStatus.slice(1)}
+                                  </Badge>
+                                </TableCell>
+                              )}
+                              {!isMobile && <TableCell className="break-words max-w-[200px]">{offender.lastKnownAddress}</TableCell>}
+                              <TableCell className="text-right">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => setIsAuthModalOpen(true)}
+                                  className="whitespace-nowrap"
+                                >
+                                  View <ArrowRight className="ml-1 h-3 w-3" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
                 ) : (
                   <Card className="text-center p-12 animate-fade-in">
