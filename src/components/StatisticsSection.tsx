@@ -85,13 +85,13 @@ const OffenseTypeChart = ({ data, loading, timeRange }: {
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <PieChart>
+      <PieChart margin={{ top: 0, right: isMobile ? 0 : 30, bottom: isMobile ? 0 : 20, left: isMobile ? 0 : 30 }}>
         <Pie
           data={data}
           cx="50%"
           cy="50%"
           labelLine={false}
-          outerRadius={isMobile ? 60 : 80}
+          outerRadius={isMobile ? 50 : 80}
           fill="#8884d8"
           dataKey="count"
           nameKey="name"
@@ -101,8 +101,13 @@ const OffenseTypeChart = ({ data, loading, timeRange }: {
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
-        <Tooltip />
-        <Legend layout={isMobile ? "horizontal" : "vertical"} verticalAlign={isMobile ? "bottom" : "middle"} align={isMobile ? "center" : "right"} />
+        <Legend 
+          layout={isMobile ? "horizontal" : "vertical"} 
+          verticalAlign={isMobile ? "bottom" : "middle"} 
+          align={isMobile ? "center" : "right"}
+          wrapperStyle={isMobile ? { fontSize: '10px', paddingTop: '10px' } : {}}
+        />
+        <Tooltip wrapperStyle={isMobile ? { fontSize: '10px' } : {}} />
       </PieChart>
     </ResponsiveContainer>
   );
@@ -133,12 +138,32 @@ const StatusDistributionChart = ({ data, loading, timeRange }: {
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} layout="vertical">
+      <BarChart 
+        data={data} 
+        layout="vertical" 
+        margin={{ 
+          top: 5, 
+          right: isMobile ? 10 : 20, 
+          bottom: isMobile ? 5 : 20, 
+          left: isMobile ? 50 : 80 
+        }}
+      >
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis type="number" />
-        <YAxis dataKey="name" type="category" width={isMobile ? 70 : 100} />
-        <Tooltip />
-        <Legend />
+        <XAxis type="number" fontSize={isMobile ? 10 : 12} />
+        <YAxis 
+          dataKey="name" 
+          type="category" 
+          width={isMobile ? 50 : 80} 
+          fontSize={isMobile ? 10 : 12}
+          tick={{ fontSize: isMobile ? 10 : 12 }}
+        />
+        <Tooltip wrapperStyle={isMobile ? { fontSize: '10px' } : {}} />
+        <Legend 
+          layout={isMobile ? "horizontal" : "vertical"}
+          verticalAlign={isMobile ? "bottom" : "middle"}
+          align={isMobile ? "center" : "right"}
+          wrapperStyle={isMobile ? { fontSize: '10px', paddingTop: '10px' } : {}}
+        />
         <Bar dataKey="count" fill={COLORS[0]} name="Offenders" />
       </BarChart>
     </ResponsiveContainer>
@@ -164,7 +189,7 @@ const OffenseTimelineChart = ({
   setSelectedMonth,
   fetchStatistics
 }: {
-  data: OffenseTimelineData[] | null;
+  data: any[] | null;
   loading: boolean;
   timeRange: string;
   setTimeRange: (range: string) => void;
@@ -180,7 +205,7 @@ const OffenseTimelineChart = ({
   const [activeChart, setActiveChart] = useState<string>(selectedOffenseTypes[0] || (offenseTypes.length > 0 ? offenseTypes[0] : ""));
   const isMobile = useIsMobile();
   
-  // Define monthNames here for use in this component
+  // Define monthNames for use in this component
   const monthNames = [
     "January", "February", "March", "April", "May", "June", 
     "July", "August", "September", "October", "November", "December"
@@ -239,12 +264,12 @@ const OffenseTimelineChart = ({
   return (
     <div className="h-full flex flex-col">
       <div className="flex flex-col gap-2 mb-4">
-        <div className="flex flex-wrap gap-2 mb-4 border-b pb-4">
+        <div className={`flex ${isMobile ? 'flex-col' : 'flex-wrap'} gap-2 mb-4 border-b pb-4`}>
           {offenseTypes.map((type, index) => (
             <button
               key={type}
               data-active={activeChart === type}
-              className={`flex flex-1 flex-col justify-center gap-1 px-3 py-2 text-left rounded-md border 
+              className={`flex flex-1 flex-col justify-center gap-1 px-2 py-1 text-left rounded-md border text-xs sm:text-sm
                 ${activeChart === type ? 'bg-muted/50 border-primary' : 'hover:bg-muted/20'}`}
               onClick={() => {
                 setActiveChart(type);
@@ -253,24 +278,24 @@ const OffenseTimelineChart = ({
                 }
               }}
             >
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground truncate">
                 {type}
               </span>
-              <span className="text-lg font-bold leading-none">
+              <span className="text-sm sm:text-base font-bold leading-none">
                 {totals[type] ? totals[type].toLocaleString() : "0"}
               </span>
             </button>
           ))}
         </div>
         
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className={`flex ${isMobile ? 'flex-wrap' : 'flex-nowrap'} gap-1 mb-4`}>
           <Button
             variant={selectedOffenseTypes.length === 0 ? "default" : "outline"}
             size="sm"
             onClick={() => setSelectedOffenseTypes([])}
             className="text-xs"
           >
-            All Types
+            All
           </Button>
           {offenseTypes.map((type, index) => (
             <Button
@@ -284,14 +309,14 @@ const OffenseTimelineChart = ({
                   setSelectedOffenseTypes([...selectedOffenseTypes, type]);
                 }
               }}
-              className="text-xs"
+              className="text-xs truncate max-w-[100px] sm:max-w-none"
               style={{ 
                 borderColor: COLORS[index % COLORS.length], 
                 color: selectedOffenseTypes.includes(type) ? 'white' : COLORS[index % COLORS.length],
                 backgroundColor: selectedOffenseTypes.includes(type) ? COLORS[index % COLORS.length] : 'transparent'
               }}
             >
-              {type}
+              {isMobile ? type.substring(0, 8) + (type.length > 8 ? '..' : '') : type}
             </Button>
           ))}
         </div>
@@ -313,7 +338,9 @@ const OffenseTimelineChart = ({
               dataKey="date" 
               tickFormatter={formatDate}
               minTickGap={isMobile ? 30 : 20}
-              tick={{ fontSize: isMobile ? 10 : 12 }}
+              tick={{ fontSize: isMobile ? 9 : 12 }}
+              height={isMobile ? 30 : 40}
+              tickMargin={isMobile ? 5 : 10}
             />
             <YAxis 
               allowDecimals={false} 
@@ -336,8 +363,8 @@ const OffenseTimelineChart = ({
                   stroke={COLORS[index % COLORS.length]} 
                   name={type} 
                   strokeWidth={activeChart === type ? 3 : 2}
-                  dot={activeChart === type ? { r: isMobile ? 3 : 4 } : { r: isMobile ? 2 : 3 }}
-                  activeDot={{ r: isMobile ? 6 : 8 }}
+                  dot={activeChart === type ? { r: isMobile ? 2 : 4 } : { r: isMobile ? 1 : 3 }}
+                  activeDot={{ r: isMobile ? 4 : 8 }}
                 />
               )
             ))}
@@ -356,7 +383,7 @@ const StatisticsSection = () => {
   const [activeCount, setActiveCount] = useState(0);
   const [offenseTypeData, setOffenseTypeData] = useState<any[] | null>(null);
   const [statusData, setStatusData] = useState<any[] | null>(null);
-  const [timelineData, setTimelineData] = useState<OffenseTimelineData[] | null>(null);
+  const [timelineData, setTimelineData] = useState<any[] | null>(null);
   const [timeRange, setTimeRange] = useState<string>("all");
   const [selectedOffenseTypes, setSelectedOffenseTypes] = useState<string[]>([]);
   const [allOffenseTypes, setAllOffenseTypes] = useState<string[]>([]);
@@ -364,7 +391,7 @@ const StatisticsSection = () => {
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const isMobile = useIsMobile();
   
-  // Define monthNames and years arrays at this level as well for the main component
+  // Define monthNames and years arrays for the main component
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 41 }, (_, i) => currentYear - i);
   
@@ -373,7 +400,7 @@ const StatisticsSection = () => {
     "July", "August", "September", "October", "November", "December"
   ];
 
-  // Define handlers for year and month changes at this level too
+  // Define handlers for year and month changes
   const handleYearChange = (year: string) => {
     setSelectedYear(parseInt(year));
     setTimeout(() => fetchChartStatistics(), 0);
@@ -386,6 +413,8 @@ const StatisticsSection = () => {
   
   // Fetch overall statistics (not affected by time range filters)
   const fetchOverallStatistics = async () => {
+    if (!overallLoading) return; // Only fetch once
+    
     try {
       setOverallLoading(true);
       
@@ -635,21 +664,22 @@ const StatisticsSection = () => {
   };
   
   useEffect(() => {
+    // Fetch the overall statistics once and chart statistics separately
     fetchOverallStatistics();
     fetchChartStatistics();
   }, []);
   
-  const showYearSelector = timeRange === 'year' || timeRange === 'month';
-  
-  const showMonthSelector = timeRange === 'month';
-
   useEffect(() => {
+    // Only refetch chart statistics when filters change
     fetchChartStatistics();
   }, [timeRange, selectedYear, selectedMonth]);
 
+  const showYearSelector = timeRange === 'year' || timeRange === 'month';
+  const showMonthSelector = timeRange === 'month';
+
   return (
-    <section className="py-12 md:py-20">
-      <div className="max-w-7xl mx-auto px-6">
+    <section className="py-12 md:py-20 overflow-hidden w-full">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full">
         <div className="mb-6">
           <h2 className="text-3xl font-bold mb-4">Registry Statistics</h2>
           <p className="text-muted-foreground mb-6">
@@ -658,57 +688,59 @@ const StatisticsSection = () => {
           
           <div className="mb-8">
             <div className="flex flex-col md:flex-row gap-4 items-start">
-              <Tabs value={timeRange} onValueChange={setTimeRange} className="w-full md:w-auto">
-                <TabsList className="grid grid-cols-4 w-full">
-                  <TabsTrigger value="month">Month</TabsTrigger>
-                  <TabsTrigger value="year">Year</TabsTrigger>
-                  <TabsTrigger value="5years">5 Years</TabsTrigger>
-                  <TabsTrigger value="all">All Time</TabsTrigger>
-                </TabsList>
-              </Tabs>
-              
-              <div className="flex flex-wrap gap-2">
-                {showYearSelector && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-[100px] flex justify-between">
-                        {selectedYear}
-                        <ChevronDown className="h-4 w-4 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0" align="end">
-                      <ScrollArea className="h-72">
-                        <div className="p-1">
-                          {years.map((year) => (
-                            <Button
-                              key={year}
-                              variant="ghost"
-                              className={`w-full justify-start ${year === selectedYear ? 'bg-muted' : ''}`}
-                              onClick={() => handleYearChange(year.toString())}
-                            >
-                              {year}
-                            </Button>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    </PopoverContent>
-                  </Popover>
-                )}
+              <div className="w-full flex flex-col gap-4">
+                <Tabs value={timeRange} onValueChange={setTimeRange} className="w-full">
+                  <TabsList className="grid grid-cols-4 w-full">
+                    <TabsTrigger value="month">Month</TabsTrigger>
+                    <TabsTrigger value="year">Year</TabsTrigger>
+                    <TabsTrigger value="5years">5 Years</TabsTrigger>
+                    <TabsTrigger value="all">All Time</TabsTrigger>
+                  </TabsList>
+                </Tabs>
                 
-                {showMonthSelector && (
-                  <Select value={selectedMonth.toString()} onValueChange={handleMonthChange}>
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue placeholder="Select month" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {monthNames.map((month, index) => (
-                        <SelectItem key={index} value={index.toString()}>
-                          {month}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+                <div className={`flex ${isMobile ? 'flex-wrap' : 'flex-nowrap'} gap-2`}>
+                  {showYearSelector && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={`${isMobile ? 'w-full' : 'w-[100px]'} flex justify-between`}>
+                          {selectedYear}
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0" align="start">
+                        <ScrollArea className="h-72">
+                          <div className="p-1">
+                            {years.map((year) => (
+                              <Button
+                                key={year}
+                                variant="ghost"
+                                className={`w-full justify-start ${year === selectedYear ? 'bg-muted' : ''}`}
+                                onClick={() => handleYearChange(year.toString())}
+                              >
+                                {year}
+                              </Button>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                  
+                  {showMonthSelector && (
+                    <Select value={selectedMonth.toString()} onValueChange={handleMonthChange}>
+                      <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[120px]'}`}>
+                        <SelectValue placeholder="Select month" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {monthNames.map((month, index) => (
+                          <SelectItem key={index} value={index.toString()}>
+                            {month}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -744,12 +776,12 @@ const StatisticsSection = () => {
           />
         </div>
         
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-12">
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           <Card className={`col-span-1 ${isMobile ? 'h-[350px]' : ''}`}>
             <CardHeader>
               <CardTitle>Offense Type Distribution</CardTitle>
             </CardHeader>
-            <CardContent className={isMobile ? "h-[280px]" : "h-80"}>
+            <CardContent className={`${isMobile ? 'h-[280px]' : 'h-80'}`}>
               <div className="h-full w-full">
                 <OffenseTypeChart data={offenseTypeData} loading={chartLoading} timeRange={timeRange} />
               </div>
@@ -760,18 +792,18 @@ const StatisticsSection = () => {
             <CardHeader>
               <CardTitle>Registration Status</CardTitle>
             </CardHeader>
-            <CardContent className={isMobile ? "h-[280px]" : "h-80"}>
+            <CardContent className={`${isMobile ? 'h-[280px]' : 'h-80'}`}>
               <div className="h-full w-full">
                 <StatusDistributionChart data={statusData} loading={chartLoading} timeRange={timeRange} />
               </div>
             </CardContent>
           </Card>
           
-          <Card className={`col-span-1 lg:col-span-1 ${isMobile ? 'h-[500px]' : ''}`}>
+          <Card className="col-span-1 lg:col-span-1 md:col-span-2 h-auto">
             <CardHeader>
               <CardTitle>Offenses Over Time</CardTitle>
             </CardHeader>
-            <CardContent className={isMobile ? "h-[420px]" : "h-96"}>
+            <CardContent className={`${isMobile ? 'h-[400px]' : 'h-96'}`}>
               <ChartContainer 
                 config={{
                   ...Object.fromEntries(
@@ -784,7 +816,7 @@ const StatisticsSection = () => {
                     ])
                   )
                 }}
-                className={isMobile ? "h-[400px] w-full" : "h-[380px] w-full"}
+                className="h-full w-full"
               >
                 <OffenseTimelineChart 
                   data={timelineData} 

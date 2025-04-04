@@ -20,6 +20,7 @@ import { ArrowRight, Search as SearchIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import AuthModal from "@/components/AuthModal";
 import { useToast } from "@/components/ui/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Search = () => {
   const [searchResults, setSearchResults] = useState<Offender[]>([]);
@@ -29,6 +30,7 @@ const Search = () => {
   const [searchLocations, setSearchLocations] = useState<{coordinates: [number, number]; intensity: number; id?: string}[]>([]);
   const [selectedOffenderId, setSelectedOffenderId] = useState<string | null>(null);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   // Create refs for table rows to scroll to
   const rowRefs = useRef<{[id: string]: HTMLTableRowElement | null}>({});
@@ -149,8 +151,8 @@ const Search = () => {
       <Navbar />
       
       {/* Main content */}
-      <main className="flex-grow pt-28 pb-16">
-        <div className="max-w-7xl mx-auto px-6">
+      <main className="flex-grow pt-28 pb-16 w-full overflow-x-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full">
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">Search Registry</h1>
             <p className="text-muted-foreground">
@@ -165,7 +167,7 @@ const Search = () => {
           
           {/* Map */}
           <div className="mb-8 border rounded-lg shadow-sm overflow-hidden">
-            <div className="h-[400px]">
+            <div className="h-[400px] w-full">
               <MapComponent 
                 heatmapData={searchLocations} 
                 zoomToResults={hasSearched && searchLocations.length > 0} 
@@ -185,14 +187,14 @@ const Search = () => {
                 </p>
                 
                 {searchResults.length > 0 ? (
-                  <div className="overflow-hidden rounded-lg border shadow-sm animate-fade-in">
+                  <div className="overflow-hidden rounded-lg border shadow-sm animate-fade-in overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead>Name</TableHead>
                           <TableHead>Offense Type</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Last Known Address</TableHead>
+                          {!isMobile && <TableHead>Status</TableHead>}
+                          {!isMobile && <TableHead>Last Known Address</TableHead>}
                           <TableHead>Details</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -207,15 +209,17 @@ const Search = () => {
                           >
                             <TableCell className="font-medium">{offender.name}</TableCell>
                             <TableCell>{offender.offenseType}</TableCell>
-                            <TableCell>
-                              <Badge 
-                                variant="outline" 
-                                className={getStatusColor(offender.registrationStatus)}
-                              >
-                                {offender.registrationStatus.charAt(0).toUpperCase() + offender.registrationStatus.slice(1)}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{offender.lastKnownAddress}</TableCell>
+                            {!isMobile && (
+                              <TableCell>
+                                <Badge 
+                                  variant="outline" 
+                                  className={getStatusColor(offender.registrationStatus)}
+                                >
+                                  {offender.registrationStatus.charAt(0).toUpperCase() + offender.registrationStatus.slice(1)}
+                                </Badge>
+                              </TableCell>
+                            )}
+                            {!isMobile && <TableCell>{offender.lastKnownAddress}</TableCell>}
                             <TableCell>
                               <Button 
                                 variant="ghost" 

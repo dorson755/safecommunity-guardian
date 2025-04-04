@@ -43,6 +43,13 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    overflow-x: hidden; /* Prevent horizontal scrolling */
+    width: 100%;
+  }
+
+  html {
+    overflow-x: hidden; /* Ensure no horizontal scrolling at the root level */
+    max-width: 100vw;
   }
 
   /* Glass morphism */
@@ -92,5 +99,27 @@
 
   .mapboxgl-ctrl-logo, .mapboxgl-ctrl-bottom-right {
     @apply hidden;
+  }
+}
+
+/* Responsive container adjustments */
+.container-fluid {
+  width: 100%;
+  max-width: 100vw;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  box-sizing: border-box;
+}
+
+/* Responsive chart layouts */
+@media (max-width: 640px) {
+  .chart-container {
+    flex-direction: column;
+  }
+  
+  .chart-legend {
+    padding-top: 0.5rem;
   }
 }
