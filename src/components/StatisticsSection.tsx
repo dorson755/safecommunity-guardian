@@ -100,23 +100,25 @@ const OffenseTypeChart = ({ data, loading, timeRange }: {
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
-        <Legend 
-          layout="horizontal"
-          verticalAlign="bottom" 
-          align="center"
-          wrapperStyle={{ 
-            width: '100%', 
-            paddingTop: '10px',
-            overflowWrap: 'break-word',
-            fontSize: isMobile ? '10px' : '12px'
-          }}
-          formatter={(value, entry, index) => {
-            if (isMobile && value.length > 10) {
-              return `${value.substring(0, 10)}...`;
-            }
-            return value;
-          }}
-        />
+        {!isMobile && (
+          <Legend 
+            layout="horizontal"
+            verticalAlign="bottom" 
+            align="center"
+            wrapperStyle={{ 
+              width: '100%', 
+              paddingTop: '10px',
+              overflowWrap: 'break-word',
+              fontSize: '12px'
+            }}
+            formatter={(value, entry, index) => {
+              if (value.length > 15) {
+                return `${value.substring(0, 15)}...`;
+              }
+              return value;
+            }}
+          />
+        )}
         <Tooltip wrapperStyle={isMobile ? { fontSize: '10px' } : {}} />
       </PieChart>
     </ResponsiveContainer>
@@ -276,29 +278,31 @@ const OffenseTimelineChart = ({
   return (
     <div className="h-full flex flex-col">
       <div className="flex flex-col gap-2 mb-4">
-        <div className={`flex ${isMobile ? 'flex-col' : 'flex-wrap'} gap-2 mb-4 border-b pb-4`}>
-          {offenseTypes.map((type, index) => (
-            <button
-              key={type}
-              data-active={activeChart === type}
-              className={`flex flex-1 flex-col justify-center gap-1 px-2 py-1 text-left rounded-md border text-xs sm:text-sm
-                ${activeChart === type ? 'bg-muted/50 border-primary' : 'hover:bg-muted/20'}`}
-              onClick={() => {
-                setActiveChart(type);
-                if (!selectedOffenseTypes.includes(type)) {
-                  setSelectedOffenseTypes([...selectedOffenseTypes, type]);
-                }
-              }}
-            >
-              <span className="text-xs text-muted-foreground truncate">
-                {type}
-              </span>
-              <span className="text-sm sm:text-base font-bold leading-none">
-                {totals[type] ? totals[type].toLocaleString() : "0"}
-              </span>
-            </button>
-          ))}
-        </div>
+        {!isMobile && (
+          <div className="flex flex-wrap gap-2 mb-4 border-b pb-4">
+            {offenseTypes.map((type, index) => (
+              <button
+                key={type}
+                data-active={activeChart === type}
+                className={`flex flex-1 flex-col justify-center gap-1 px-2 py-1 text-left rounded-md border text-xs sm:text-sm
+                  ${activeChart === type ? 'bg-muted/50 border-primary' : 'hover:bg-muted/20'}`}
+                onClick={() => {
+                  setActiveChart(type);
+                  if (!selectedOffenseTypes.includes(type)) {
+                    setSelectedOffenseTypes([...selectedOffenseTypes, type]);
+                  }
+                }}
+              >
+                <span className="text-xs text-muted-foreground truncate">
+                  {type}
+                </span>
+                <span className="text-sm sm:text-base font-bold leading-none">
+                  {totals[type] ? totals[type].toLocaleString() : "0"}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
         
         <div className={`flex ${isMobile ? 'flex-wrap' : 'flex-nowrap'} gap-1 mb-4`}>
           <Button
@@ -787,7 +791,7 @@ const StatisticsSection = () => {
             <CardHeader>
               <CardTitle>Offense Type Distribution</CardTitle>
             </CardHeader>
-            <CardContent className={`${isMobile ? 'h-[280px]' : 'h-[320px]'} relative overflow-hidden`}>
+            <CardContent className={`${isMobile ? 'h-[280px]' : 'h-[320px]'} relative overflow-hidden flex items-center justify-center`}>
               <div className="h-full w-full">
                 <OffenseTypeChart data={offenseTypeData} loading={chartLoading} timeRange={timeRange} />
               </div>
@@ -798,8 +802,8 @@ const StatisticsSection = () => {
             <CardHeader>
               <CardTitle>Registration Status</CardTitle>
             </CardHeader>
-            <CardContent className={`${isMobile ? 'h-[280px]' : 'h-[320px]'} px-1 relative overflow-hidden`}>
-              <div className="h-full w-full mx-[3px]">
+            <CardContent className={`${isMobile ? 'h-[280px]' : 'h-[320px]'} flex items-center justify-center relative overflow-hidden`}>
+              <div className="h-full w-full flex items-center justify-center">
                 <StatusDistributionChart data={statusData} loading={chartLoading} timeRange={timeRange} />
               </div>
             </CardContent>
