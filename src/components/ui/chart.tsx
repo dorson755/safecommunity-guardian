@@ -14,7 +14,7 @@ interface ChartContainerProps {
   children: ReactElement;
 }
 
-const ChartContainer: React.FC<ChartContainerProps> = ({ config, className, children }) => {
+export const ChartContainer: React.FC<ChartContainerProps> = ({ config, className, children }) => {
   return (
     <div className={`w-full h-full flex items-center justify-center overflow-hidden ${className || ""}`}>
       {children}
@@ -64,4 +64,5 @@ export const ChartTooltipContent = ({
   );
 };
 
+// Export ChartContainer as default as well to maintain backward compatibility
 export default ChartContainer;
