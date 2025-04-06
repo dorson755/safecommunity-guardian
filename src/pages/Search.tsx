@@ -3,6 +3,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SearchBar from "@/components/SearchBar";
 import MapComponent from "@/components/Map";
+import OffenderDetails from "@/components/OffenderDetails";
 import { Offender } from "@/lib/types";
 import { supabase, transformOffenderFromDB, insertDemoOffenders } from "@/integrations/supabase/client";
 import { 
@@ -28,6 +29,8 @@ const Search = () => {
   const [dataAvailable, setDataAvailable] = useState(false);
   const [searchLocations, setSearchLocations] = useState<{coordinates: [number, number]; intensity: number; id?: string}[]>([]);
   const [selectedOffenderId, setSelectedOffenderId] = useState<string | null>(null);
+  const [selectedOffender, setSelectedOffender] = useState<Offender | null>(null);
+  const [viewingDetails, setViewingDetails] = useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
   
@@ -145,6 +148,19 @@ const Search = () => {
     }
   };
 
+  const handleViewDetails = (offender: Offender) => {
+    setSelectedOffender(offender);
+    setViewingDetails(true);
+    
+    // Scroll to top of page for better UX
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBackToResults = () => {
+    setViewingDetails(false);
+    setSelectedOffender(null);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background w-full max-w-[100vw] overflow-x-hidden">
       <Navbar />
@@ -175,87 +191,96 @@ const Search = () => {
             </div>
           </div>
           
-          {/* Search Results */}
+          {/* Offender Details or Search Results */}
           <div className="mb-6">
-            <h2 className="text-2xl font-bold mb-4">Search Results</h2>
-            
-            {hasSearched ? (
+            {viewingDetails && selectedOffender ? (
+              <OffenderDetails
+                offender={selectedOffender}
+                onBack={handleBackToResults}
+              />
+            ) : (
               <>
-                <p className="text-muted-foreground mb-4">
-                  Found {searchResults.length} registered offenders matching your search criteria.
-                </p>
+                <h2 className="text-2xl font-bold mb-4">Search Results</h2>
                 
-                {searchResults.length > 0 ? (
-                  <div className="overflow-hidden rounded-lg border shadow-sm animate-fade-in overflow-x-auto w-full">
-                    <div className="w-full overflow-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Offense Type</TableHead>
-                            {!isMobile && <TableHead>Status</TableHead>}
-                            {!isMobile && <TableHead>Last Known Address</TableHead>}
-                            <TableHead className="w-24">Details</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {searchResults.map((offender) => (
-                            <TableRow 
-                              key={offender.id}
-                              ref={el => rowRefs.current[offender.id] = el}
-                              className={selectedOffenderId === offender.id 
-                                ? "bg-primary/10 transition-colors duration-500" 
-                                : "transition-colors duration-300"}
-                            >
-                              <TableCell className="font-medium break-words max-w-[120px]">{offender.name}</TableCell>
-                              <TableCell className="break-words max-w-[120px]">{offender.offenseType}</TableCell>
-                              {!isMobile && (
-                                <TableCell>
-                                  <Badge 
-                                    variant="outline" 
-                                    className={getStatusColor(offender.registrationStatus)}
-                                  >
-                                    {offender.registrationStatus.charAt(0).toUpperCase() + offender.registrationStatus.slice(1)}
-                                  </Badge>
-                                </TableCell>
-                              )}
-                              {!isMobile && <TableCell className="break-words max-w-[200px]">{offender.lastKnownAddress}</TableCell>}
-                              <TableCell className="text-right">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => setIsAuthModalOpen(true)}
-                                  className="whitespace-nowrap"
+                {hasSearched ? (
+                  <>
+                    <p className="text-muted-foreground mb-4">
+                      Found {searchResults.length} registered offenders matching your search criteria.
+                    </p>
+                    
+                    {searchResults.length > 0 ? (
+                      <div className="overflow-hidden rounded-lg border shadow-sm animate-fade-in overflow-x-auto w-full">
+                        <div className="w-full overflow-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Offense Type</TableHead>
+                                {!isMobile && <TableHead>Status</TableHead>}
+                                {!isMobile && <TableHead>Last Known Address</TableHead>}
+                                <TableHead className="w-24">Details</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {searchResults.map((offender) => (
+                                <TableRow 
+                                  key={offender.id}
+                                  ref={el => rowRefs.current[offender.id] = el}
+                                  className={selectedOffenderId === offender.id 
+                                    ? "bg-primary/10 transition-colors duration-500" 
+                                    : "transition-colors duration-300"}
                                 >
-                                  View <ArrowRight className="ml-1 h-3 w-3" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-                ) : (
-                  <Card className="text-center p-12 animate-fade-in">
-                    <CardContent>
-                      <div className="mx-auto my-6 flex h-20 w-20 items-center justify-center rounded-full bg-muted">
-                        <SearchIcon className="h-10 w-10 text-muted-foreground" />
+                                  <TableCell className="font-medium break-words max-w-[120px]">{offender.name}</TableCell>
+                                  <TableCell className="break-words max-w-[120px]">{offender.offenseType}</TableCell>
+                                  {!isMobile && (
+                                    <TableCell>
+                                      <Badge 
+                                        variant="outline" 
+                                        className={getStatusColor(offender.registrationStatus)}
+                                      >
+                                        {offender.registrationStatus.charAt(0).toUpperCase() + offender.registrationStatus.slice(1)}
+                                      </Badge>
+                                    </TableCell>
+                                  )}
+                                  {!isMobile && <TableCell className="break-words max-w-[200px]">{offender.lastKnownAddress}</TableCell>}
+                                  <TableCell className="text-right">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      onClick={() => handleViewDetails(offender)}
+                                      className="whitespace-nowrap"
+                                    >
+                                      View <ArrowRight className="ml-1 h-3 w-3" />
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
                       </div>
-                      <h3 className="text-xl font-semibold">No Results Found</h3>
-                      <p className="text-muted-foreground mt-2">
-                        Try adjusting your search terms or filters to find what you're looking for.
-                      </p>
-                    </CardContent>
-                  </Card>
+                    ) : (
+                      <Card className="text-center p-12 animate-fade-in">
+                        <CardContent>
+                          <div className="mx-auto my-6 flex h-20 w-20 items-center justify-center rounded-full bg-muted">
+                            <SearchIcon className="h-10 w-10 text-muted-foreground" />
+                          </div>
+                          <h3 className="text-xl font-semibold">No Results Found</h3>
+                          <p className="text-muted-foreground mt-2">
+                            Try adjusting your search terms or filters to find what you're looking for.
+                          </p>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center p-12 border rounded-lg">
+                    <p className="text-muted-foreground">
+                      Enter a search term above to find registered offenders.
+                    </p>
+                  </div>
                 )}
               </>
-            ) : (
-              <div className="text-center p-12 border rounded-lg">
-                <p className="text-muted-foreground">
-                  Enter a search term above to find registered offenders.
-                </p>
-              </div>
             )}
           </div>
         </div>
