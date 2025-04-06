@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -36,10 +35,8 @@ const Search = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   
-  // Create refs for table rows to scroll to
   const rowRefs = useRef<{[id: string]: HTMLTableRowElement | null}>({});
   
-  // Use the new section scroll hook
   const { registerSection, scrollToSection } = useSectionScroll();
   const resultsRef = registerSection('results');
   const detailsRef = registerSection('details');
@@ -56,7 +53,6 @@ const Search = () => {
         const hasData = count !== null && count > 0;
         setDataAvailable(hasData);
         
-        // If we have fewer than 25 records, generate more demo data
         if (count !== null && count < 25) {
           const result = await insertDemoOffenders();
           if (result.success) {
@@ -65,7 +61,6 @@ const Search = () => {
               description: "Additional demo records have been added for demonstration purposes.",
               duration: 5000,
             });
-            // Reload the data count
             const { count: newCount } = await supabase
               .from('offenders')
               .select('*', { count: 'exact', head: true });
@@ -106,7 +101,6 @@ const Search = () => {
       setHasSearched(true);
       setSelectedOffenderId(null);
       
-      // Extract locations for the map
       const locations = results.map(offender => ({
         coordinates: [offender.longitude, offender.latitude] as [number, number],
         intensity: 1,
@@ -133,7 +127,6 @@ const Search = () => {
   const handlePointClick = (id: string) => {
     setSelectedOffenderId(id);
     
-    // Scroll to the corresponding row
     if (rowRefs.current[id]) {
       rowRefs.current[id]?.scrollIntoView({ 
         behavior: 'smooth',
@@ -164,7 +157,6 @@ const Search = () => {
     setViewingDetails(false);
     setSelectedOffender(null);
     
-    // Instead of scrolling to top, we stay in the current section
     setTimeout(() => {
       scrollToSection('results');
     }, 100);
@@ -174,7 +166,6 @@ const Search = () => {
     <div className="min-h-screen flex flex-col bg-background w-full max-w-[100vw] overflow-x-hidden">
       <Navbar />
       
-      {/* Main content */}
       <main className="flex-grow pt-28 pb-16 w-full overflow-x-hidden px-4 sm:px-6">
         <div className="max-w-7xl mx-auto w-full">
           <div className="mb-8">
@@ -184,12 +175,10 @@ const Search = () => {
             </p>
           </div>
           
-          {/* Search bar */}
           <div className="mb-6">
             <SearchBar onSearch={handleSearch} />
           </div>
           
-          {/* Map */}
           <div className="mb-8 border rounded-lg shadow-sm overflow-hidden">
             <div className="h-[400px] w-full">
               <MapComponent 
@@ -200,15 +189,16 @@ const Search = () => {
             </div>
           </div>
           
-          {/* Offender Details or Search Results */}
-          <div className="mb-6" ref={viewingDetails ? detailsRef : resultsRef}>
+          <div className="mb-6">
             {viewingDetails && selectedOffender ? (
-              <OffenderDetails
-                offender={selectedOffender}
-                onBack={handleBackToResults}
-              />
+              <div ref={detailsRef as React.RefObject<HTMLDivElement>}>
+                <OffenderDetails
+                  offender={selectedOffender}
+                  onBack={handleBackToResults}
+                />
+              </div>
             ) : (
-              <>
+              <div ref={resultsRef as React.RefObject<HTMLDivElement>}>
                 <h2 className="text-2xl font-bold mb-4">Search Results</h2>
                 
                 {hasSearched ? (
@@ -289,7 +279,7 @@ const Search = () => {
                     </p>
                   </div>
                 )}
-              </>
+              </div>
             )}
           </div>
         </div>

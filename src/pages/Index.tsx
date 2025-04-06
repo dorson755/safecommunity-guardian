@@ -22,7 +22,9 @@ import {
   Lock, 
   UserCheck,
   ExternalLink,
-  AlertTriangle
+  AlertTriangle,
+  Search as SearchIcon,
+  Map as MapIcon
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { supabase, transformOffenderFromDB, insertDemoOffenders } from "@/integrations/supabase/client";
@@ -208,12 +210,12 @@ const Index = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 animate-fade-in delay-150">
             <FeatureCard
-              icon={Search}
+              icon={SearchIcon}
               title="Advanced Search"
               description="Find detailed information about registered offenders by name, location, or offense type."
             />
             <FeatureCard
-              icon={Map}
+              icon={MapIcon}
               title="Interactive Map"
               description="Visualize offender density with our heat map technology to better understand risk areas."
             />
@@ -298,12 +300,12 @@ const Index = () => {
             <div className="max-w-7xl mx-auto px-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <FeatureCard
-                  icon={Search}
+                  icon={SearchIcon}
                   title="Advanced Search"
                   description="Find detailed information about registered offenders by name, location, or offense type."
                 />
                 <FeatureCard
-                  icon={Map}
+                  icon={MapIcon}
                   title="Interactive Map"
                   description="Visualize offender density with our heat map technology to better understand risk areas."
                 />
