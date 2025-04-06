@@ -22,6 +22,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import AuthModal from "@/components/AuthModal";
 import { useToast } from "@/components/ui/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSectionScroll } from "@/hooks/useSectionScroll";
 
 const Search = () => {
   const [searchResults, setSearchResults] = useState<Offender[]>([]);
@@ -37,6 +38,11 @@ const Search = () => {
   
   // Create refs for table rows to scroll to
   const rowRefs = useRef<{[id: string]: HTMLTableRowElement | null}>({});
+  
+  // Use the new section scroll hook
+  const { registerSection, scrollToSection } = useSectionScroll();
+  const resultsRef = registerSection('results');
+  const detailsRef = registerSection('details');
   
   useEffect(() => {
     const checkDataAvailability = async () => {
@@ -152,14 +158,16 @@ const Search = () => {
   const handleViewDetails = (offender: Offender) => {
     setSelectedOffender(offender);
     setViewingDetails(true);
-    
-    // Scroll to top of page for better UX
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleBackToResults = () => {
     setViewingDetails(false);
     setSelectedOffender(null);
+    
+    // Instead of scrolling to top, we stay in the current section
+    setTimeout(() => {
+      scrollToSection('results');
+    }, 100);
   };
 
   return (
@@ -193,7 +201,7 @@ const Search = () => {
           </div>
           
           {/* Offender Details or Search Results */}
-          <div className="mb-6">
+          <div className="mb-6" ref={viewingDetails ? detailsRef : resultsRef}>
             {viewingDetails && selectedOffender ? (
               <OffenderDetails
                 offender={selectedOffender}
