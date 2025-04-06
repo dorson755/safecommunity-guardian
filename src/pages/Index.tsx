@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/Navbar";
 import SearchBar from "@/components/SearchBar";
@@ -7,6 +8,7 @@ import AuthModal from "@/components/AuthModal";
 import Footer from "@/components/Footer";
 import { Offender } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import OffenderDetails from "@/components/OffenderDetails"; // Add the import for OffenderDetails
 import { 
   Table, 
   TableBody, 
