@@ -62,6 +62,8 @@ const Index = () => {
   const [searchLocations, setSearchLocations] = useState<{coordinates: [number, number]; intensity: number; id?: string}[]>([]);
   const [selectedOffenderId, setSelectedOffenderId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedOffender, setSelectedOffender] = useState<Offender | null>(null);
+  const [viewingDetails, setViewingDetails] = useState(false);
   const mapSectionRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -175,6 +177,18 @@ const Index = () => {
         }
       }, 100);
     }
+  };
+
+  const handleViewDetails = (offender: Offender) => {
+    setSelectedOffender(offender);
+    setViewingDetails(true);
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBackToResults = () => {
+    setViewingDetails(false);
+    setSelectedOffender(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -320,7 +334,7 @@ const Index = () => {
         </div>
       </section>
       
-      {hasSearched && (
+      {hasSearched && !viewingDetails && (
         <section className="py-12 md:py-20">
           <div className="max-w-7xl mx-auto px-6">
             <div className="mb-10">
@@ -369,7 +383,7 @@ const Index = () => {
                             <Button 
                               variant="ghost" 
                               size="sm"
-                              onClick={() => setIsAuthModalOpen(true)}
+                              onClick={() => handleViewDetails(offender)}
                             >
                               View <ArrowRight className="ml-1 h-3 w-3" />
                             </Button>
@@ -399,116 +413,126 @@ const Index = () => {
         </section>
       )}
       
-      <StatisticsSection />
+      {viewingDetails && selectedOffender && (
+        <section className="py-12 md:py-20">
+          <div className="max-w-7xl mx-auto px-6">
+            <OffenderDetails 
+              offender={selectedOffender}
+              onBack={handleBackToResults}
+            />
+          </div>
+        </section>
+      )}
       
-      <section className="py-12 md:py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">Comprehensive Protection System</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Our platform offers multiple layers of protection to help keep your community safe and informed.
+      {!viewingDetails && (
+        <StatisticsSection />
+      )}
+      
+      {!viewingDetails && (
+        <section className="py-12 md:py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <Card className="bg-white transition-shadow hover:shadow-lg">
+                <CardHeader>
+                  <Bell className="h-8 w-8 text-primary mb-2" />
+                  <CardTitle>Real-time Notifications</CardTitle>
+                  <CardDescription>
+                    Stay informed with instant alerts when registered offenders move into your area.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-start">
+                      <div className="mr-2 mt-1 h-1.5 w-1.5 rounded-full bg-primary"></div>
+                      <span>Email and SMS notifications</span>
+                    </li>
+                    <li className="flex items-start">
+                      <div className="mr-2 mt-1 h-1.5 w-1.5 rounded-full bg-primary"></div>
+                      <span>Customizable alert radius</span>
+                    </li>
+                    <li className="flex items-start">
+                      <div className="mr-2 mt-1 h-1.5 w-1.5 rounded-full bg-primary"></div>
+                      <span>Status change notifications</span>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-white transition-shadow hover:shadow-lg">
+                <CardHeader>
+                  <Lock className="h-8 w-8 text-primary mb-2" />
+                  <CardTitle>Secure Data Access</CardTitle>
+                  <CardDescription>
+                    Multiple security layers ensure data privacy while providing necessary transparency.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-start">
+                      <div className="mr-2 mt-1 h-1.5 w-1.5 rounded-full bg-primary"></div>
+                      <span>End-to-end encryption</span>
+                    </li>
+                    <li className="flex items-start">
+                      <div className="mr-2 mt-1 h-1.5 w-1.5 rounded-full bg-primary"></div>
+                      <span>Role-based access control</span>
+                    </li>
+                    <li className="flex items-start">
+                      <div className="mr-2 mt-1 h-1.5 w-1.5 rounded-full bg-primary"></div>
+                      <span>Decentralized data storage</span>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-white transition-shadow hover:shadow-lg">
+                <CardHeader>
+                  <UserCheck className="h-8 w-8 text-primary mb-2" />
+                  <CardTitle>Verified Information</CardTitle>
+                  <CardDescription>
+                    All registry data is verified and regularly updated for accuracy.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-start">
+                      <div className="mr-2 mt-1 h-1.5 w-1.5 rounded-full bg-primary"></div>
+                      <span>Official government data sources</span>
+                    </li>
+                    <li className="flex items-start">
+                      <div className="mr-2 mt-1 h-1.5 w-1.5 rounded-full bg-primary"></div>
+                      <span>Regular synchronization</span>
+                    </li>
+                    <li className="flex items-start">
+                      <div className="mr-2 mt-1 h-1.5 w-1.5 rounded-full bg-primary"></div>
+                      <span>Historical record tracking</span>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+      )}
+      
+      {!viewingDetails && (
+        <section className="py-20 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-background"></div>
+          <div className="max-w-5xl mx-auto px-6 text-center relative">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to protect your community?</h2>
+            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+              Sign up for free to access full registry data, set up alerts, and help keep your neighborhood safe.
             </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button size="lg" onClick={() => setIsAuthModalOpen(true)}>
+                Create Free Account
+              </Button>
+              <Button size="lg" variant="outline">
+                Learn More <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="bg-white transition-shadow hover:shadow-lg">
-              <CardHeader>
-                <Bell className="h-8 w-8 text-primary mb-2" />
-                <CardTitle>Real-time Notifications</CardTitle>
-                <CardDescription>
-                  Stay informed with instant alerts when registered offenders move into your area.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-start">
-                    <div className="mr-2 mt-1 h-1.5 w-1.5 rounded-full bg-primary"></div>
-                    <span>Email and SMS notifications</span>
-                  </li>
-                  <li className="flex items-start">
-                    <div className="mr-2 mt-1 h-1.5 w-1.5 rounded-full bg-primary"></div>
-                    <span>Customizable alert radius</span>
-                  </li>
-                  <li className="flex items-start">
-                    <div className="mr-2 mt-1 h-1.5 w-1.5 rounded-full bg-primary"></div>
-                    <span>Status change notifications</span>
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-white transition-shadow hover:shadow-lg">
-              <CardHeader>
-                <Lock className="h-8 w-8 text-primary mb-2" />
-                <CardTitle>Secure Data Access</CardTitle>
-                <CardDescription>
-                  Multiple security layers ensure data privacy while providing necessary transparency.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-start">
-                    <div className="mr-2 mt-1 h-1.5 w-1.5 rounded-full bg-primary"></div>
-                    <span>End-to-end encryption</span>
-                  </li>
-                  <li className="flex items-start">
-                    <div className="mr-2 mt-1 h-1.5 w-1.5 rounded-full bg-primary"></div>
-                    <span>Role-based access control</span>
-                  </li>
-                  <li className="flex items-start">
-                    <div className="mr-2 mt-1 h-1.5 w-1.5 rounded-full bg-primary"></div>
-                    <span>Decentralized data storage</span>
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-white transition-shadow hover:shadow-lg">
-              <CardHeader>
-                <UserCheck className="h-8 w-8 text-primary mb-2" />
-                <CardTitle>Verified Information</CardTitle>
-                <CardDescription>
-                  All registry data is verified and regularly updated for accuracy.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-start">
-                    <div className="mr-2 mt-1 h-1.5 w-1.5 rounded-full bg-primary"></div>
-                    <span>Official government data sources</span>
-                  </li>
-                  <li className="flex items-start">
-                    <div className="mr-2 mt-1 h-1.5 w-1.5 rounded-full bg-primary"></div>
-                    <span>Regular synchronization</span>
-                  </li>
-                  <li className="flex items-start">
-                    <div className="mr-2 mt-1 h-1.5 w-1.5 rounded-full bg-primary"></div>
-                    <span>Historical record tracking</span>
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-      
-      <section className="py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-background"></div>
-        <div className="max-w-5xl mx-auto px-6 text-center relative">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to protect your community?</h2>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Sign up for free to access full registry data, set up alerts, and help keep your neighborhood safe.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" onClick={() => setIsAuthModalOpen(true)}>
-              Create Free Account
-            </Button>
-            <Button size="lg" variant="outline">
-              Learn More <ExternalLink className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
       
       <Footer />
       
